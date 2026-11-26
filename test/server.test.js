@@ -317,7 +317,7 @@ test('OAuth 2.1 discovery, DCR, static client, MCP tools, and security boundarie
 
   const localAdmin = await fetch(`${baseUrl}/admin`);
   assert.equal(localAdmin.status, 200);
-  assert.match(await localAdmin.text(), /PC Operator MCP/);
+  assert.match(await localAdmin.text(), /PC-Operator-MCP/);
 
   const loginRes = await fetch(`${baseUrl}/admin/login`, {
     method: 'POST',
@@ -1604,4 +1604,112 @@ test('Rutas dedicadas /mcp/gemini y /mcp/gemini/:slot, PRM RFC 9728 y detección
   const customRunCmd = customTools.find((x) => x.name === 'run_command');
   assert.equal(customRunCmd.annotations?.readOnlyHint, true);
   assert.equal(customRunCmd.annotations?.destructiveHint, false);
+});
+
+test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, and bundled public skills discovery', async (t) => {
+  const env = createTempEnv();
+  const configManager = new ConfigManager({
+    dataDir: env.dataDir,
+    defaultWorkspace: env.ws1,
+    port: 0,
+    operatorEnabled: false
+  });
+  assert.equal(configManager.get().ui.language, 'en');
+
+  const srv = await createMcpAppServer({ configManager, port: 0, globalSkillsDir: null });
+  const baseUrl = `http://127.0.0.1:${srv.port}`;
+
+  t.after(async () => {
+    await srv.close();
+    fs.rmSync(env.base, { recursive: true, force: true });
+  });
+
+  // 1) Admin login renders in English by default and supports ?lang=es
+  const loginEn = await (await fetch(`${baseUrl}/admin`)).text();
+  assert.match(loginEn, /<html lang="en">/);
+  assert.match(loginEn, /Open Control Panel/);
+
+  const loginEs = await (await fetch(`${baseUrl}/admin?lang=es`)).text();
+  assert.match(loginEs, /<html lang="es">/);
+  assert.match(loginEs, /Entrar al Panel/);
+
+  // 2) OAuth consent renders in English by default and supports ?lang=es
+  const staticClient = configManager.get().staticClient;
+  const consentParams = new URLSearchParams({
+    client_id: staticClient.client_id,
+    redirect_uri: 'https://claude.ai/api/mcp/auth_callback',
+    response_type: 'code'
+  });
+  const consentEn = await (await fetch(`${baseUrl}/authorize?${consentParams}`)).text();
+  assert.match(consentEn, /<html lang="en">/);
+  assert.match(consentEn, /Authorize PC-Operator-MCP Access/);
+
+  const consentEs = await (await fetch(`${baseUrl}/authorize?${consentParams}&lang=es`)).text();
+  assert.match(consentEs, /<html lang="es">/);
+  assert.match(consentEs, /Autorizar acceso a PC-Operator-MCP/);
+
+  // 3) Sign in to /admin and verify /admin/api/state + POST /admin/api/config/ui persistence
+  const loginRes = await fetch(`${baseUrl}/admin/login`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ pin: configManager.get().pin })
+  });
+  const adminCookie = loginRes.headers.get('set-cookie').split(';')[0];
+
+  const st1 = await (await fetch(`${baseUrl}/admin/api/state`, { headers: { Cookie: adminCookie } })).json();
+  assert.equal(st1.server.version, '0.5.0');
+  assert.equal(st1.ui.language, 'en');
+
+  const badLangRes = await fetch(`${baseUrl}/admin/api/config/ui`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+    body: JSON.stringify({ language: 'fr' })
+  });
+  assert.equal(badLangRes.status, 400);
+
+  const setEsRes = await fetch(`${baseUrl}/admin/api/config/ui`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+    body: JSON.stringify({ language: 'es' })
+  });
+  assert.equal(setEsRes.status, 200);
+  const setEsJson = await setEsRes.json();
+  assert.equal(setEsJson.ui.language, 'es');
+  assert.equal(setEsJson.state.ui.language, 'es');
+
+  // Persisted language reflects in /internal/tray/status and reloaded ConfigManager
+  const trayRes = await fetch(`${baseUrl}/internal/tray/status`, {
+    headers: { 'x-tray-token': srv.trayToken }
+  });
+  assert.equal(trayRes.status, 200);
+  const trayJson = await trayRes.json();
+  assert.equal(trayJson.language, 'es');
+  assert.equal(trayJson.version, '0.5.0');
+
+  const reloaded = new ConfigManager({ dataDir: env.dataDir, defaultWorkspace: env.ws1, operatorEnabled: false });
+  assert.equal(reloaded.get().ui.language, 'es');
+
+  // 4) Bundled public skills/ are automatically discovered by use_skill
+  const apiKey = configManager.createApiKey('Bundled Skills Tester');
+  const client = new Client({ name: 'bundled-skills-client', version: '1.0.0' });
+  await client.connect(new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
+    requestInit: { headers: { Authorization: `Bearer ${apiKey.token}` } }
+  }));
+  t.after(async () => client.close().catch(() => {}));
+
+  const listRes = await client.callTool({ name: 'use_skill', arguments: {} });
+  assert.equal(Boolean(listRes.isError), false);
+  const listJson = JSON.parse(listRes.content[0].text);
+  const byName = new Map(listJson.skills.map((s) => [s.name, s]));
+  for (const expected of [
+    'workspace-operator-guide',
+    'windows-operator',
+    'chrome-operator',
+    'firefox-operator',
+    'desktop-operator'
+  ]) {
+    assert.ok(byName.has(expected), `Expected bundled skill: ${expected}`);
+    assert.equal(byName.get(expected).source, 'bundled');
+  }
 });

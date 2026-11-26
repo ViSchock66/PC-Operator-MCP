@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { APP_ROOT } from './config.js';
 
 const MAX_SKILL_BYTES = 64 * 1024;
 
@@ -78,12 +79,15 @@ function scanSkillsDirectory(dirPath, source) {
 }
 
 /**
- * Discovers and serves SKILL.md playbooks from the built-in MCP guide, active workspace,
- * Antigravity Operator plugin, and user global skills folder (read-only).
+ * Discovers and serves SKILL.md playbooks from the active workspace, bundled repo skills/,
+ * built-in MCP guide, Antigravity Operator plugin, and user global skills folder (read-only).
  */
 export class SkillCatalog {
-  constructor({ configManager, globalSkillsDir } = {}) {
+  constructor({ configManager, bundledSkillsDir, globalSkillsDir } = {}) {
     this.configManager = configManager;
+    this.bundledSkillsDir = bundledSkillsDir !== undefined
+      ? bundledSkillsDir
+      : path.join(APP_ROOT, 'skills');
     this.globalSkillsDir = globalSkillsDir !== undefined
       ? globalSkillsDir
       : path.join(os.homedir(), '.gemini', 'config', 'skills');
@@ -112,7 +116,14 @@ export class SkillCatalog {
       // Ignore if workspace root unavailable.
     }
 
-    // 2. Built-in MCP operational guide skill
+    // 2. Bundled server skills/ directory shipped with PC-Operator-MCP
+    if (this.bundledSkillsDir) {
+      for (const sk of scanSkillsDirectory(this.bundledSkillsDir, 'bundled')) {
+        register(sk);
+      }
+    }
+
+    // 3. Built-in MCP operational guide fallback
     if (builtinGuideText) {
       register({
         name: 'workspace-operator-guide',
@@ -122,7 +133,7 @@ export class SkillCatalog {
       });
     }
 
-    // 3. Antigravity Operator plugin skills (chrome-operator, firefox-operator, desktop-operator)
+    // 4. Antigravity Operator plugin skills (chrome-operator, firefox-operator, desktop-operator)
     const opCfg = this.configManager?.get?.()?.operator;
     if (includeOperatorSkills && opCfg?.enabled && opCfg?.serverPath) {
       const opSkillsDir = path.resolve(path.dirname(opCfg.serverPath), '..', 'skills');
@@ -131,7 +142,7 @@ export class SkillCatalog {
       }
     }
 
-    // 4. User global skills (e.g. cv-workflow, windows-operator)
+    // 5. User global skills (read-only)
     if (this.globalSkillsDir) {
       for (const sk of scanSkillsDirectory(this.globalSkillsDir, 'global')) {
         register(sk);

@@ -60,6 +60,8 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   assert.equal(okRes.status, 200);
   const statusJson = await okRes.json();
   assert.equal(statusJson.ok, true);
+  assert.equal(statusJson.language, 'en');
+  assert.equal(typeof statusJson.version, 'string');
   assert.equal(statusJson.pin, configManager.get().pin);
   assert.equal(statusJson.adminUrl, `${baseUrl}/admin`);
 

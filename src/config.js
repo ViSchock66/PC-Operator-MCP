@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalizeLanguage } from './i18n.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -322,6 +323,9 @@ export class ConfigManager {
         customDomain: safeCustomDomain,
         cloudflareToken: envToken || String(loaded.tunnel?.cloudflareToken || ''),
         autoStart: loaded.tunnel?.autoStart ?? true
+      },
+      ui: {
+        language: normalizeLanguage(loaded.ui?.language || process.env.MCP_LANG, DEFAULT_LANGUAGE)
       }
     };
 
@@ -595,5 +599,20 @@ export class ConfigManager {
     }
     this.save();
     return { ...this.config.operator };
+  }
+
+  updateUiConfig(patch = {}) {
+    if (!this.config.ui) {
+      this.config.ui = { language: DEFAULT_LANGUAGE };
+    }
+    if (patch.language !== undefined) {
+      const raw = String(patch.language || '').trim().toLowerCase();
+      if (!SUPPORTED_LANGUAGES.includes(raw)) {
+        throw new Error(`Unsupported UI language: "${patch.language}". Supported: ${SUPPORTED_LANGUAGES.join(', ')}.`);
+      }
+      this.config.ui.language = raw;
+    }
+    this.save();
+    return { ...this.config.ui };
   }
 }

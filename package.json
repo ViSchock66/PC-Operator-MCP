@@ -1,7 +1,7 @@
 {
-  "name": "gemini-pc-mcp",
-  "version": "0.1.0",
-  "description": "Servidor MCP Streamable HTTP + OAuth 2.1 para conectar gemini.google.com a un workspace local en Windows",
+  "name": "pc-operator-mcp",
+  "version": "0.5.0",
+  "description": "Local Windows Streamable HTTP MCP server with OAuth 2.1, workspace sandboxing, cross-model handoff, and optional Antigravity Operator federation",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

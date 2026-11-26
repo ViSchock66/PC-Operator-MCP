@@ -5,14 +5,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { escapeHtml } from './auth.js';
-import { BUILTIN_OAUTH_PROVIDERS } from './config.js';
+import { APP_ROOT, BUILTIN_OAUTH_PROVIDERS } from './config.js';
+import { getServerMessages, normalizeLanguage } from './i18n.js';
+import { renderLoginHtml } from './templates/loginPage.js';
 
 const execFileAsync = promisify(execFile);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const LOOPBACK_ADDRS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const APP_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8'));
+    return String(pkg.version || '0.5.0');
+  } catch {
+    return '0.5.0';
+  }
+})();
 
 function hasProxyHeaders(req) {
   const suspicious = [
@@ -45,14 +54,15 @@ function parseCookies(cookieHeader) {
   return map;
 }
 
-async function pickFolderInWindows() {
+async function pickFolderInWindows(lang = 'en') {
   if (process.platform !== 'win32') {
-    throw new Error('El selector nativo solo está disponible en Windows.');
+    throw new Error('The native folder picker is only available on Windows.');
   }
+  const title = getServerMessages(lang).dialog.pickFolderTitle.replace(/'/g, "''");
   const script = `
 Add-Type -AssemblyName System.Windows.Forms
 $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-$dlg.Description = "Selecciona la carpeta de workspace para Gemini MCP"
+$dlg.Description = '${title}'
 $dlg.UseDescriptionForTitle = $true
 $dlg.ShowNewFolderButton = $true
 $top = New-Object System.Windows.Forms.Form
@@ -69,53 +79,6 @@ if ($res -eq [System.Windows.Forms.DialogResult]::OK) {
     { timeout: 120000, windowsHide: false }
   );
   return stdout.trim();
-}
-
-function renderLoginHtml(errorMessage) {
-  return `<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PC Operator MCP — Acceso</title>
-  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png" />
-  <link rel="manifest" href="/admin/assets/manifest.webmanifest" />
-  <link rel="stylesheet" href="/admin/assets/styles.css" />
-</head>
-<body class="login-body">
-  <div class="login-card">
-    <div class="brand" style="padding:0 0 12px">
-      <div class="brand-logo" aria-hidden="true">
-        <svg viewBox="0 0 32 32" fill="none">
-          <rect x="1.5" y="1.5" width="29" height="29" rx="7.5" fill="#0d1017" stroke="#2a3244" stroke-width="1.3"/>
-          <path d="M8.5 13.5V9.8C8.5 9.1 9.1 8.5 9.8 8.5H22.2C22.9 8.5 23.5 9.1 23.5 9.8V13.5" stroke="#f4f4f5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M8.5 18.5V22.2C8.5 22.9 9.1 23.5 9.8 23.5H22.2C22.9 23.5 23.5 22.9 23.5 22.2V18.5" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="10.8" y1="16" x2="21.2" y2="16" stroke="#94a3b8" stroke-width="1.7" stroke-linecap="round"/>
-          <circle cx="8.5" cy="16" r="2.3" fill="#181c24" stroke="#f4f4f5" stroke-width="1.7"/>
-          <circle cx="23.5" cy="16" r="2.3" fill="#181c24" stroke="#f4f4f5" stroke-width="1.7"/>
-          <circle cx="16" cy="16" r="3.4" fill="#0d1017"/>
-          <circle cx="16" cy="16" r="2.6" fill="#22c55e"/>
-        </svg>
-      </div>
-      <div class="brand-meta">
-        <div class="brand-title-row">
-          <span class="brand-name">PC Operator MCP</span>
-          <span class="version-chip">LOCAL</span>
-        </div>
-        <span class="brand-sub">Acceso exclusivo en 127.0.0.1</span>
-      </div>
-    </div>
-    <p class="muted-copy">Ingresa tu PIN de autorización para abrir el panel de control, proveedores OAuth/API, operator y workspaces.</p>
-    ${errorMessage ? `<div class="alert alert-danger" style="margin-top:12px">${escapeHtml(errorMessage)}</div>` : ''}
-    <form method="POST" action="/admin/login" class="login-form">
-      <label class="field-label" for="pin-input">PIN local (guardado en <code>data/config.json</code>)</label>
-      <input id="pin-input" class="input mono" type="password" name="pin" placeholder="Ej: 9B2A781B" autofocus required />
-      <button class="btn btn-primary btn-full" type="submit">Entrar al Panel</button>
-    </form>
-  </div>
-</body>
-</html>`;
 }
 
 function readGitBranchFast(dirPath) {
@@ -284,10 +247,14 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     return {
       server: {
         pid: process.pid,
+        version: APP_VERSION,
         port: cfg.port,
         host: cfg.host,
         portRestartRequired,
         platform: process.platform
+      },
+      ui: {
+        language: normalizeLanguage(cfg.ui?.language)
       },
       auth: {
         pin: cfg.pin,
@@ -354,17 +321,26 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
 
   router.post('/login', (req, res) => {
     const submitted = String(req.body?.pin || '').trim();
+    const submittedLang = req.body?.lang ? normalizeLanguage(req.body.lang) : null;
     const expected = configManager.get().pin;
     const a = Buffer.from(submitted, 'utf8');
     const b = Buffer.from(expected, 'utf8');
     if (a.length === b.length && crypto.timingSafeEqual(a, b)) {
+      if (submittedLang && submittedLang !== configManager.get().ui?.language) {
+        try {
+          configManager.updateUiConfig({ language: submittedLang });
+        } catch {
+          // Ignore invalid optional language hint.
+        }
+      }
       res.setHeader(
         'Set-Cookie',
         `${COOKIE_NAME}=${encodeURIComponent(signSession())}; HttpOnly; SameSite=Strict; Path=/admin; Max-Age=${30 * 24 * 3600}`
       );
       return res.redirect('/admin');
     }
-    return res.redirect('/admin?error=PIN+incorrecto');
+    const langParam = submittedLang ? `&lang=${encodeURIComponent(submittedLang)}` : '';
+    return res.redirect(`/admin?error=invalid_pin${langParam}`);
   });
 
   router.post('/logout', (_req, res) => {
@@ -381,8 +357,12 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     if (req.path.startsWith('/api/')) {
       return res.status(401).json({ error: 'Sesión local expirada. Recarga e ingresa tu PIN.' });
     }
-    const err = req.query.error ? String(req.query.error) : '';
-    return res.status(200).type('html').send(renderLoginHtml(err));
+    const lang = normalizeLanguage(req.query.lang || configManager.get().ui?.language);
+    const rawErr = req.query.error ? String(req.query.error) : '';
+    const err = rawErr === 'invalid_pin'
+      ? getServerMessages(lang).login.invalidPin
+      : rawErr;
+    return res.status(200).type('html').send(renderLoginHtml({ lang, errorMessage: err }));
   });
 
   // Serve desktop panel HTML
@@ -533,6 +513,19 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     }
   });
 
+  router.post('/api/config/ui', (req, res) => {
+    try {
+      const b = req.body || {};
+      const ui = configManager.updateUiConfig({
+        language: b.language !== undefined ? b.language : undefined
+      });
+      tunnelManager?.notifyStateChange?.();
+      return res.json({ ok: true, ui, state: buildFullState() });
+    } catch (error) {
+      return res.status(400).json({ error: error.message });
+    }
+  });
+
   router.post('/api/config/oauth', (req, res) => {
     try {
       const b = req.body || {};
@@ -657,7 +650,7 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
 
   router.post('/api/workspaces/pick', async (_req, res) => {
     try {
-      const picked = await pickFolderInWindows();
+      const picked = await pickFolderInWindows(configManager.get().ui?.language);
       if (!picked) {
         return res.json({ ok: true, cancelled: true, state: buildFullState() });
       }
@@ -905,7 +898,7 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
 
   router.post('/workspace/pick', async (_req, res) => {
     try {
-      const picked = await pickFolderInWindows();
+      const picked = await pickFolderInWindows(configManager.get().ui?.language);
       if (!picked) {
         return res.redirect('/admin?msg=Selecci%C3%B3n+cancelada');
       }
@@ -972,6 +965,8 @@ export function createTrayInternalRouter({
     const daemons = processManager ? processManager.getState() : null;
     return res.json({
       ok: true,
+      version: APP_VERSION,
+      language: normalizeLanguage(cfg.ui?.language),
       status: t?.status || 'running',
       mode: t?.mode || cfg.tunnel?.mode || 'tailscale',
       mcpUrl: t?.mcpUrl || `http://${cfg.host}:${cfg.port}/mcp`,
