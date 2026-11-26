@@ -474,8 +474,9 @@ export class ClientSessionStore {
 }
 
 /**
- * Provides sandboxed filesystem, multimodal document/image reading, search, git,
- * and command execution tools for the active workspace (with optional per-client session isolation).
+ * Provides workspace-scoped file tools (with path checks and protectSensitiveFiles),
+ * multimodal document/image reading, search, git, and full-user PowerShell command
+ * execution starting in the active workspace (with optional per-client session isolation).
  */
 export class WorkspaceHarness {
   constructor(configManager, options = {}) {
@@ -580,7 +581,7 @@ export class WorkspaceHarness {
       throw new Error(`Escritura bloqueada por seguridad en ruta sensible de Git: ${relPosix}`);
     }
     if (SENSITIVE_BASENAME_RE.test(base)) {
-      throw new Error(`Acceso bloqueado por seguridad a archivo sensible (${base}). Puedes desactivar 'protectSensitiveFiles' en /admin si realmente lo necesitas.`);
+      throw new Error(`Acceso bloqueado en tools de archivos por 'protectSensitiveFiles' (${base}). Esta protección solo cubre herramientas de archivos (no limita run_command/process_*); puedes desactivarla en /admin si lo necesitas.`);
     }
   }
 

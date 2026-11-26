@@ -313,8 +313,17 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     next();
   });
 
-  // Public static assets for login + app shell (still strictly localhost-only due to guard above)
-  router.use('/assets', express.static(PUBLIC_DIR, { maxAge: 0 }));
+  // Public static assets for login + app shell (strictly localhost-only due to guard above).
+  // Block direct access to index.html (served behind the session gate at GET /admin/) and return 404 for missing assets.
+  router.use('/assets', (req, res, next) => {
+    const clean = String(req.path || '').toLowerCase();
+    if (clean === '/' || clean === '' || clean === '/index.html') {
+      return res.status(404).type('text/plain').send('No encontrado.');
+    }
+    return next();
+  });
+  router.use('/assets', express.static(PUBLIC_DIR, { maxAge: 0, index: false }));
+  router.use('/assets', (_req, res) => res.status(404).type('text/plain').send('Asset no encontrado.'));
 
   router.use(express.urlencoded({ extended: false }));
   router.use(express.json({ limit: '1mb' }));
@@ -357,12 +366,18 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     if (req.path.startsWith('/api/')) {
       return res.status(401).json({ error: 'Sesión local expirada. Recarga e ingresa tu PIN.' });
     }
-    const lang = normalizeLanguage(req.query.lang || configManager.get().ui?.language);
-    const rawErr = req.query.error ? String(req.query.error) : '';
-    const err = rawErr === 'invalid_pin'
-      ? getServerMessages(lang).login.invalidPin
-      : rawErr;
-    return res.status(200).type('html').send(renderLoginHtml({ lang, errorMessage: err }));
+    if (req.method === 'GET' && (req.path === '/' || req.path === '')) {
+      const lang = normalizeLanguage(req.query.lang || configManager.get().ui?.language);
+      const rawErr = req.query.error ? String(req.query.error) : '';
+      const err = rawErr === 'invalid_pin'
+        ? getServerMessages(lang).login.invalidPin
+        : rawErr;
+      return res.status(200).type('html').send(renderLoginHtml({ lang, errorMessage: err }));
+    }
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      return res.status(401).type('text/plain').send('Sesión local requerida.');
+    }
+    return res.status(404).type('text/plain').send('No encontrado.');
   });
 
   // Serve desktop panel HTML

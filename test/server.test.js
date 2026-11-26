@@ -7,7 +7,9 @@ import test from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { APP_ROOT, DEFAULT_OPERATOR_SERVER_PATH, DEFAULT_PLAYGROUND, ConfigManager } from '../src/config.js';
+import { createWorkspaceMcpServer } from '../src/mcpTools.js';
 import { createMcpAppServer } from '../src/server.js';
+import { WorkspaceHarness } from '../src/workspace.js';
 
 function createTempEnv() {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'gemini-pc-mcp-test-'));
@@ -1712,4 +1714,189 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
     assert.ok(byName.has(expected), `Expected bundled skill: ${expected}`);
     assert.equal(byName.get(expected).source, 'bundled');
   }
+});
+
+test('Auditoría 2 (4.1 y 4.3): run_command aclara permisos de usuario, protectSensitiveFiles solo tools de archivos, y logs Gemini no inducen solo lectura', async (t) => {
+  const env = createTempEnv();
+  const configManager = new ConfigManager({
+    dataDir: env.dataDir,
+    defaultWorkspace: env.ws1,
+    port: 0,
+    operatorEnabled: false
+  });
+  const srv = await createMcpAppServer({ configManager, port: 0 });
+  const baseUrl = `http://127.0.0.1:${srv.port}`;
+
+  t.after(async () => {
+    await srv.close();
+    fs.rmSync(env.base, { recursive: true, force: true });
+  });
+
+  const apiKey = configManager.createApiKey('Audit2 Clarity Test');
+  const client = new Client({ name: 'audit2-clarity', version: '1.0.0' });
+  await client.connect(new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp/gemini`), {
+    requestInit: { headers: { Authorization: `Bearer ${apiKey.token}` } }
+  }));
+  t.after(async () => client.close().catch(() => {}));
+
+  const instructions = client.getInstructions() || '';
+  assert.match(instructions, /permisos completos del usuario/i);
+  assert.match(instructions, /protectSensitiveFiles/);
+
+  const tools = (await client.listTools()).tools;
+  const runCmd = tools.find((x) => x.name === 'run_command');
+  assert.ok(runCmd);
+  assert.match(runCmd.description, /permisos completos del usuario/i);
+  assert.match(runCmd.description, /protectSensitiveFiles solo cubre las tools de archivos/i);
+  assert.equal(runCmd.annotations?.readOnlyHint, true);
+
+  // protectSensitiveFiles error explicitly clarifies it only covers file tools
+  const envWrite = await client.callTool({ name: 'write_file', arguments: { path: '.env', content: 'A=1' } });
+  assert.equal(envWrite.isError, true);
+  assert.match(envWrite.content[0].text, /solo cubre herramientas de archivos/i);
+
+  // Logs on /mcp/gemini must not show misleading "Gemini readOnly=ON" or "readOnlyHint=true forzado"
+  const logLines = srv.tunnelManager.getState().logs.map((l) => l.message).join('\n');
+  assert.doesNotMatch(logLines, /Gemini readOnly=ON/);
+  assert.doesNotMatch(logLines, /readOnlyHint=true forzado/);
+  assert.match(logLines, /anotaciones compat Gemini/i);
+});
+
+test('Auditoría 2 (4.4): fallo en onToolEvent/handoff no rompe la tool y excepciones del handler quedan registradas', async (t) => {
+  const env = createTempEnv();
+  const configManager = new ConfigManager({
+    dataDir: env.dataDir,
+    defaultWorkspace: env.ws1,
+    port: 0,
+    operatorEnabled: false
+  });
+  const srv = await createMcpAppServer({ configManager, port: 0 });
+  const baseUrl = `http://127.0.0.1:${srv.port}`;
+
+  t.after(async () => {
+    await srv.close();
+    fs.rmSync(env.base, { recursive: true, force: true });
+  });
+
+  // 1) Simulate disk/write failure inside handoffManager.recordToolCall
+  let recordAttempts = 0;
+  srv.handoffManager.recordToolCall = () => {
+    recordAttempts += 1;
+    throw new Error('ENOSPC: simulated disk error');
+  };
+
+  const apiKey = configManager.createApiKey('Audit2 Resilience Test');
+  const client = new Client({ name: 'audit2-resilience', version: '1.0.0' });
+  await client.connect(new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
+    requestInit: { headers: { Authorization: `Bearer ${apiKey.token}` } }
+  }));
+  t.after(async () => client.close().catch(() => {}));
+
+  const writeRes = await client.callTool({
+    name: 'write_file',
+    arguments: { path: 'resilient.txt', content: 'ok-despite-handoff-error' }
+  });
+  assert.equal(Boolean(writeRes.isError), false, `write_file no debe fallar si falla recordToolCall: ${writeRes.content?.[0]?.text}`);
+  assert.equal(recordAttempts >= 1, true);
+  assert.equal(fs.readFileSync(path.join(env.ws1, 'resilient.txt'), 'utf8'), 'ok-despite-handoff-error');
+
+  // 2) Thrown handler exception in server.registerTool is still recorded in onToolEvent and rethrown
+  const events = [];
+  const harness = new WorkspaceHarness(configManager);
+  const customMcp = createWorkspaceMcpServer(harness, {
+    onToolEvent: (ev) => {
+      events.push(ev);
+    }
+  });
+  let wrappedCb = null;
+  const registered = customMcp.registerTool(
+    'boom_tool',
+    { title: 'Boom', description: 'Throws directly' },
+    async () => {
+      throw new Error('direct-handler-boom');
+    }
+  );
+  wrappedCb = registered.handler || registered.callback;
+  assert.equal(typeof wrappedCb, 'function');
+  await assert.rejects(() => wrappedCb({ sample: 1 }, {}), /direct-handler-boom/);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].tool, 'boom_tool');
+  assert.equal(events[0].ok, false);
+  assert.match(events[0].error, /direct-handler-boom/);
+});
+
+test('Auditoría 2 (4.5): CORS en /mcp permite orígenes autorizados y loopback, y no refleja orígenes arbitrarios', async (t) => {
+  const env = createTempEnv();
+  const configManager = new ConfigManager({
+    dataDir: env.dataDir,
+    defaultWorkspace: env.ws1,
+    port: 0,
+    operatorEnabled: false
+  });
+  const srv = await createMcpAppServer({ configManager, port: 0 });
+  const baseUrl = `http://127.0.0.1:${srv.port}`;
+
+  t.after(async () => {
+    await srv.close();
+    fs.rmSync(env.base, { recursive: true, force: true });
+  });
+
+  // Allowed origins reflect Access-Control-Allow-Origin
+  for (const allowedOrigin of [
+    'https://claude.ai',
+    'https://chatgpt.com',
+    'https://chat.openai.com',
+    'https://gemini.google.com',
+    'https://oauth-redirect.googleusercontent.com',
+    'http://127.0.0.1:6274',
+    'http://localhost:5173'
+  ]) {
+    const res = await fetch(`${baseUrl}/mcp`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: allowedOrigin,
+        'Access-Control-Request-Method': 'POST'
+      }
+    });
+    assert.equal(res.status, 204, `OPTIONS para ${allowedOrigin}`);
+    assert.equal(res.headers.get('access-control-allow-origin'), allowedOrigin);
+  }
+
+  // Arbitrary external origin must NOT be reflected (nor 500)
+  for (const endpoint of ['/mcp', '/mcp/gemini', '/mcp/gemini/2']) {
+    const evilRes = await fetch(`${baseUrl}${endpoint}`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://evil.example.com',
+        'Access-Control-Request-Method': 'POST'
+      }
+    });
+    assert.equal(evilRes.status, 204, `OPTIONS rechazado limpiamente en ${endpoint}`);
+    assert.equal(evilRes.headers.get('access-control-allow-origin'), null);
+  }
+
+  // Custom OAuth origin configured dynamically is also honored by CORS
+  configManager.updateOAuthConfig({ allowedRedirectOrigins: ['https://mi-cliente.example.org/oauth/cb'] });
+  const customCorsRes = await fetch(`${baseUrl}/mcp`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'https://mi-cliente.example.org',
+      'Access-Control-Request-Method': 'POST'
+    }
+  });
+  assert.equal(customCorsRes.status, 204);
+  assert.equal(customCorsRes.headers.get('access-control-allow-origin'), 'https://mi-cliente.example.org');
+
+  // Server-to-server request without Origin header still succeeds with Bearer token
+  const apiKey = configManager.createApiKey('No-Origin S2S');
+  const s2sRes = await fetch(`${baseUrl}/mcp`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey.token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/event-stream'
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' })
+  });
+  assert.equal(s2sRes.status, 200);
 });

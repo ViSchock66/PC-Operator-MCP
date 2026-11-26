@@ -4,7 +4,7 @@ import express from 'express';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createLocalAdminRouter, createTrayInternalRouter } from './admin.js';
 import { McpOAuthService } from './auth.js';
-import { ConfigManager } from './config.js';
+import { BUILTIN_OAUTH_PROVIDERS, ConfigManager } from './config.js';
 import { HandoffManager } from './handoff.js';
 import { createWorkspaceMcpServer } from './mcpTools.js';
 import { OperatorBridgePool } from './operatorBridge.js';
@@ -51,8 +51,50 @@ export async function createMcpAppServer(options = {}) {
   // Required behind cloudflared / Tailscale / reverse proxies so express-rate-limit & proto headers work accurately.
   app.set('trust proxy', 1);
 
+  const BASE_ALLOWED_CORS_ORIGINS = new Set([
+    'https://claude.ai',
+    'https://chatgpt.com',
+    'https://chat.openai.com',
+    'https://gemini.google.com',
+    ...BUILTIN_OAUTH_PROVIDERS.map((p) => p.origin)
+  ]);
+  const LOOPBACK_CORS_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+  const isAllowedMcpOrigin = (origin) => {
+    if (!origin) return true; // Server-to-server (Claude/Gemini/ChatGPT backends) and CLI/SDK clients
+    let parsed;
+    try {
+      parsed = new URL(String(origin));
+    } catch {
+      return false;
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return false;
+    }
+    if (LOOPBACK_CORS_HOSTS.has(parsed.hostname.toLowerCase())) {
+      return true;
+    }
+    if (BASE_ALLOWED_CORS_ORIGINS.has(parsed.origin)) {
+      return true;
+    }
+    const cfgNow = configManager.get();
+    const dynamicEntries = [
+      ...(cfgNow.oauth?.allowedRedirectOrigins || []),
+      cfgNow.tunnel?.publicUrl,
+      cfgNow.tunnel?.customDomain
+    ].filter(Boolean);
+    for (const entry of dynamicEntries) {
+      try {
+        if (new URL(entry).origin === parsed.origin) return true;
+      } catch {
+        // Ignore malformed entry.
+      }
+    }
+    return false;
+  };
+
   const mcpCors = cors({
-    origin: true,
+    origin: (origin, callback) => callback(null, isAllowedMcpOrigin(origin)),
     exposedHeaders: ['Mcp-Session-Id', 'WWW-Authenticate']
   });
 
@@ -112,13 +154,13 @@ export async function createMcpAppServer(options = {}) {
         tunnelManager.log(
           'info',
           'mcp',
-          `[${clientLabel}] initialize en ${reqPath} (proto=${msg.params?.protocolVersion || '?'}, client=${msg.params?.clientInfo?.name || '?'}${isGeminiClient ? ', Gemini readOnly=ON' : ''})`
+          `[${clientLabel}] initialize en ${reqPath} (proto=${msg.params?.protocolVersion || '?'}, client=${msg.params?.clientInfo?.name || '?'}${isGeminiClient ? ', anotaciones compat Gemini (sin restricción)' : ''})`
         );
       } else if (msg.method === 'tools/list') {
         tunnelManager.log(
           'ok',
           'mcp',
-          `[${clientLabel}] tools/list en ${reqPath} (${totalToolsCount} tools, ${isGeminiClient ? 'readOnlyHint=true forzado' : 'annotations reales'})`
+          `[${clientLabel}] tools/list en ${reqPath} (${totalToolsCount} tools, ${isGeminiClient ? 'anotaciones compat Gemini (no restringe herramientas)' : 'annotations reales'})`
         );
       }
     }
@@ -188,13 +230,15 @@ export async function createMcpAppServer(options = {}) {
     next();
   };
 
-  app.options('/mcp', mcpCors);
+  const endPreflight = (_req, res) => res.status(204).end();
+
+  app.options('/mcp', mcpCors, endPreflight);
   app.all('/mcp', mcpCors, authService.requireBearerMiddleware({ resourcePath: '/mcp' }), express.json({ limit: '4mb' }), createMcpEndpointHandler({ forceGeminiRoute: false }));
 
-  app.options('/mcp/gemini', mcpCors);
+  app.options('/mcp/gemini', mcpCors, endPreflight);
   app.all('/mcp/gemini', mcpCors, authService.requireBearerMiddleware({ resourcePath: '/mcp/gemini' }), express.json({ limit: '4mb' }), createMcpEndpointHandler({ forceGeminiRoute: true }));
 
-  app.options('/mcp/gemini/:slot', mcpCors);
+  app.options('/mcp/gemini/:slot', validateGeminiSlot, mcpCors, endPreflight);
   app.all('/mcp/gemini/:slot', validateGeminiSlot, mcpCors, authService.requireBearerMiddleware(), express.json({ limit: '4mb' }), createMcpEndpointHandler({ forceGeminiRoute: true }));
 
   const cfg = configManager.get();

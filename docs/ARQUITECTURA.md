@@ -13,7 +13,7 @@ Referencia interna de los módulos, flujos, persistencia y endpoints del servido
 | `src/server.js` | App Express, CORS, endpoints `/mcp`, `/mcp/gemini`, `/mcp/gemini/:slot`, aislamiento por sesión, debounce SSE (`500 ms`) y montaje de `/admin` e `/internal/tray`. |
 | `src/auth.js` | Servidor OAuth 2.1 (discovery RFC 8414 + RFC 9728 PRM, DCR `/register`, consentimiento con PIN `/authorize`, `/token` con PKCE, TTL 30d, ventana de gracia de 60s en `refresh_token`) + verificación de API Keys `gp_key_*`. |
 | `src/config.js` | `ConfigManager` con escritura atómica (`atomicWriteFileSync`), normalización de rutas/URLs, protección de carpetas prohibidas (`isProtectedWorkspacePath`), permisos y configuración de túnel/Operator/Full Control. |
-| `src/workspace.js` | `ClientSessionStore` (overrides de workspace por sesión en memoria) y `WorkspaceHarness` (FS enjaulado, lectura multimodal texto/imagen/Office/PDF + render visual Windows, `run_command`, `git_harness`). |
+| `src/workspace.js` | `ClientSessionStore` (overrides de workspace por sesión en memoria) y `WorkspaceHarness` (tools de archivos acotadas al workspace + `protectSensitiveFiles`, lectura multimodal texto/imagen/Office/PDF + render visual Windows, `run_command` con permisos completos del usuario, `git_harness`). |
 | `src/mcpTools.js` | Construcción de `McpServer` por petición (`StreamableHTTPServerTransport` stateless), instrucciones operativas, workaround de annotations para Gemini Web, Resource/Prompts y registro de todas las tools. |
 | `src/handoff.js` | `HandoffManager` (v2): rastros automáticos particionados por `(sessionKey, activeWorkspace)`, redacción de secretos (`redactSecrets`), checkpoints explícitos, desambiguación segura (`needsSelection`) y generación de prompts de relevo. |
 | `src/processManager.js` | Gestor de demonios/consolas persistentes bajo el switch **Modo Control Total** (TTL con auto-expiración, límite de 10 procesos activos / 256 KB buffer y `taskkill /T /F` en Windows). |
@@ -111,6 +111,6 @@ Todos los archivos JSON se escriben de forma atómica (`tmp` + `rename`, con fal
 ## 6. Suite de Pruebas (`test/`)
 
 Ejecutar con `npm test` (`node --test test/*.test.js`):
-- `test/server.test.js`: OAuth 2.1, DCR, seguridad de rutas/sandbox, API keys, Operator federado, lectura multimodal (imagen/PDF/DOCX/lote), aislamiento de sesiones paralelas, Control Total / demonios, `use_skill`, TTL 30d + ventana de gracia, rutas `/mcp/gemini*`.
+- `test/server.test.js`: OAuth 2.1, DCR, restricción de rutas en tools de archivos (aclaración: `run_command` y `process_*` corren PowerShell con permisos completos del usuario y no están enjaulados), CORS en `/mcp`, API keys, Operator federado, lectura multimodal (imagen/PDF/DOCX/lote), aislamiento de sesiones paralelas, Control Total / demonios, `use_skill`, TTL 30d + ventana de gracia, rutas `/mcp/gemini*`.
 - `test/handoff.test.js`: cero contaminación en `workspace_info`, particionamiento por `(sesión, workspace)`, desambiguación `needsSelection`, no-mezcla entre checkpoints y trails ajenos, redacción de secretos, persistencia tras reinicio y endpoints `/admin/api/handoffs/*`.
 - `test/tray.test.js`: seguridad de `/internal/tray`, assets estáticos del panel y compilación del binario de bandeja.

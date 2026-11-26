@@ -38,7 +38,7 @@ El servidor soporta **sesiones paralelas aisladas**: puedes tener Gemini, Claude
   `https://<tu-url-fija>/mcp`
 - **Endpoint dedicado Gemini Web (recomendado para `gemini.google.com`):**
   `https://<tu-url-fija>/mcp/gemini` *(y slots paralelos `/mcp/gemini/<slot>`)*
-  > **Por qué existe `/mcp/gemini`:** aplica automáticamente el workaround `readOnlyHint: true` (desactivable con `GEMINI_READONLY_ANNOTATIONS=0`) para evitar que Gemini Web revierta permisos *"Permitir siempre"* tras cada llamada, además de exponer metadata RFC 9728 por ruta.
+  > **Por qué existe `/mcp/gemini`:** aplica automáticamente anotaciones de compatibilidad para Gemini Web (`readOnlyHint: true`, desactivable con `GEMINI_READONLY_ANNOTATIONS=0`) para evitar el bug donde Gemini Web revierte *"Permitir siempre"* tras cada llamada, además de exponer metadata RFC 9728 por ruta. **Es solo una anotación de compatibilidad y no restringe herramientas ni activa modo solo lectura.**
 - **Proveedores OAuth incluidos:** Google Gemini (prod/sandbox/test), Claude (`claude.ai`), ChatGPT (`chatgpt.com` / `chat.openai.com`), orígenes personalizados configurables desde `/admin`, registro dinámico (**DCR**) y cliente estático (**ID + Secreto**).
 - **API Keys (`gp_key_*`):** generables y revocables desde `/admin` → **Conectores & Auth** para clientes o scripts con `Authorization: Bearer <token>`.
 
@@ -65,7 +65,7 @@ Accesible **solo desde `127.0.0.1`** con PIN (rechaza cualquier acceso vía prox
 - **Lectura multimodal y por lotes:**
   - `read_file`: código/texto paginado por líneas, imágenes inline (`png`, `jpg`, `webp`, `gif`), Office (`docx`, `xlsx`, `pptx`) y **PDF** (extracción de texto o `renderPages: true` a JPEG inline sin abrir Chrome).
   - `read_files`: lee hasta 10 archivos en una sola llamada.
-- **Edición y ejecución:** `write_file`, `edit_file`, `move_path`, `delete_path`, `run_command` (PowerShell oculto con timeout configurable), `git_harness` (`status`, `diff`, `log`, `branches`).
+- **Edición y ejecución:** `write_file`, `edit_file`, `move_path`, `delete_path`, `run_command` (PowerShell oculto con permisos completos del usuario de Windows; arranca en el workspace activo pero puede acceder fuera de él, con timeout configurable), `git_harness` (`status`, `diff`, `log`, `branches`).
 - **Skills integradas:** `use_skill` lista y carga playbooks `SKILL.md` (del workspace activo, guía integrada `workspace-operator-guide`, skills de Operator y skills globales del usuario).
 
 ### 2. Handoff entre Modelos — 100% Bajo Solicitud (3 tools)
@@ -100,13 +100,14 @@ Si el plugin `antigravity-operator` está habilitado en `/admin`, el servidor fe
 | `MCP_PUBLIC_URL` | `""` | Origen público HTTPS (`https://...`) usado en metadata OAuth/RFC 9728. |
 | `CLOUDFLARE_TUNNEL_TOKEN` | `""` | Activa modo `cloudflare-named` con token de túnel fijo. |
 | `MCP_ACCESS_TOKEN_TTL_SEC` | `2592000` (30d) | Duración de los `access_token` OAuth. |
-| `GEMINI_READONLY_ANNOTATIONS` | `1` (activo) | En `0` desactiva el workaround `readOnlyHint: true` para clientes Gemini. |
+| `GEMINI_READONLY_ANNOTATIONS` | `1` (activo) | En `0` desactiva las anotaciones de compatibilidad `readOnlyHint: true` para clientes Gemini (solo metadato de UI; **no restringe** herramientas ni activa modo solo lectura). |
 
 ---
 
 ## Seguridad
 
-- `/mcp`, `/mcp/gemini` y `/mcp/gemini/:slot` exigen Bearer token válido con scope `mcp:tools` (OAuth 2.1 + PKCE o API Key).
-- Enjaulado estricto dentro del workspace activo: bloquea `..`, symlinks externos, el directorio interno del propio servidor (`src/`, `data/`, `panel/`, etc.), la carpeta de `antigravity-operator`, `.git/config`, `.git/hooks/*` y archivos sensibles (`.env`, `.pem`, `.key`, `id_rsa`, etc.).
+- `/mcp`, `/mcp/gemini` y `/mcp/gemini/:slot` exigen Bearer token válido con scope `mcp:tools` (OAuth 2.1 + PKCE o API Key) y validan orígenes CORS permitidos.
+- **Alcance de las herramientas de archivos (`read_file`, `read_files`, `write_file`, `edit_file`, `move_path`, `delete_path`, `list_dir`, `find_files`, `search_text`):** restringidas al workspace activo; bloquean `..`, symlinks externos, el directorio interno del servidor (`src/`, `data/`, `panel/`, etc.), la carpeta de `antigravity-operator`, `.git/config`, `.git/hooks/*` y archivos sensibles (`.env`, `.pem`, `.key`, `id_rsa`, etc.) cuando `protectSensitiveFiles` está activo.
+- **Consola (`run_command` y `process_*`):** por diseño, ejecutan PowerShell con los **permisos completos del usuario actual de Windows** para operar el PC y sus herramientas/sesiones. Arrancan en el workspace activo como directorio inicial (`cwd`), pero **no están enjauladas** al workspace ni limitadas por `protectSensitiveFiles`. Si deseas impedir ejecución de consola, desactiva `allowCommands` en `/admin`.
 - `/admin`, `/admin/api/*` y `/internal/tray/*` solo responden a loopback local (`127.0.0.1`), rechazan cabeceras de proxy/túnel (`403`) y exigen autenticación por cookie firmada o `trayToken`.
 - Los comandos y errores guardados en `data/handoffs.json` pasan por redacción de secretos antes de escribirse a disco.

@@ -97,6 +97,29 @@ test('Tray internal loopback API security, static UI assets, and tray executable
     assert.equal(assetRes.status, 200, `Expected 200 for ${asset}`);
   }
 
+  // 5b. Auditoría 2 (4.6): /admin/assets/index.html blocked, missing assets & unknown /admin paths return 404/401 instead of 200 login HTML
+  for (const blockedPath of [
+    '/admin/assets/index.html',
+    '/admin/assets/',
+    '/admin/assets/no-existe-123.js',
+    '/admin/assets/%2e%2e/server.js',
+    '/admin/ruta-inexistente'
+  ]) {
+    const res = await fetch(`${baseUrl}${blockedPath}`);
+    assert.equal(res.status, 404, `Expected 404 for ${blockedPath}, got ${res.status}`);
+  }
+
+  const unauthPost = await fetch(`${baseUrl}/admin/permissions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ allowWrite: 'on' })
+  });
+  assert.equal(unauthPost.status, 401);
+
+  const loginPage = await fetch(`${baseUrl}/admin`);
+  assert.equal(loginPage.status, 200);
+  assert.match(await loginPage.text(), /PC-Operator-MCP/);
+
   // 6. Native Windows tray executable builds/exists
   if (process.platform === 'win32') {
     const exePath = ensureTrayExecutable();

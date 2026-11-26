@@ -389,15 +389,15 @@
                 <label class="toggle-row">
                   <div class="toggle-info">
                     <span class="toggle-title" data-i18n="workspaces.allowCommandsTitle">Allow PowerShell command execution</span>
-                    <span class="toggle-desc" data-i18n-html="workspaces.allowCommandsDesc">Enables <code>run_command</code> inside the active workspace.</span>
+                    <span class="toggle-desc" data-i18n-html="workspaces.allowCommandsDesc">Enables <code>run_command</code>: starts in the active workspace, but runs PowerShell with your Windows user's full permissions (can access paths outside the workspace).</span>
                   </div>
                   <input id="perm-commands" class="switch" type="checkbox" />
                 </label>
 
                 <label class="toggle-row">
                   <div class="toggle-info">
-                    <span class="toggle-title" data-i18n="workspaces.protectSensitiveTitle">Protect sensitive files</span>
-                    <span class="toggle-desc" data-i18n-html="workspaces.protectSensitiveDesc">Blocks reads and writes on <code>.env</code>, <code>.pem</code>, <code>.key</code>, and <code>.git/hooks</code>.</span>
+                    <span class="toggle-title" data-i18n="workspaces.protectSensitiveTitle">Protect sensitive files (file tools only)</span>
+                    <span class="toggle-desc" data-i18n-html="workspaces.protectSensitiveDesc">Blocks <code>.env</code>, <code>.pem</code>, <code>.key</code>, and <code>.git/hooks</code> in file tools (<code>read_file</code>, <code>write_file</code>, etc.). Does not restrict <code>run_command</code> or <code>process_*</code>.</span>
                   </div>
                   <input id="perm-sensitive" class="switch" type="checkbox" />
                 </label>

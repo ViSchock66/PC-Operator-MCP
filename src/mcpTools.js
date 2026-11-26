@@ -199,7 +199,7 @@ export function buildMcpServerInstructions({ hasOperator = false, hasProcessMana
     '- **Rutas:** todas las tools del workspace usan rutas **relativas** a `activeWorkspace`. Si una tool `operator_*` necesita una ruta local (ej. `upload_file` o `screenshot.path`), arma la ruta absoluta usando `activeWorkspace`.',
     '- **Lectura inteligente:** `read_file` lee directamente código/texto (500 líneas por defecto), **imágenes inline** (PNG/JPG/WEBP/GIF), **DOCX/XLSX/PPTX** y **PDFs**. Para revisar visualmente márgenes, diseño o espaciado de un PDF usa `read_file({ path, renderPages: true, pages: "1-2" })`: renderiza en Windows sin abrir Chrome ni ventanas.',
     '- **Lectura por lotes:** usa `read_files` para leer hasta 10 archivos (texto/PDF/DOCX) en UNA sola llamada y evitar rondas innecesarias.',
-    '- **Edición:** usa `edit_file` (tras `read_file`) para parches exactos; `write_file` para crear/sobrescribir; `run_command` corre PowerShell oculto dentro del workspace.',
+    '- **Edición y consola:** usa `edit_file` (tras `read_file`) para parches exactos y `write_file` para crear/sobrescribir (las tools de archivos están acotadas al workspace y respetan `protectSensitiveFiles`). `run_command` ejecuta PowerShell oculto con los permisos completos del usuario actual de Windows: arranca en `activeWorkspace`, pero puede salir del workspace y no está limitado por `protectSensitiveFiles`.',
     '- **Skills integradas (`use_skill`):** este MCP incluye skills `SKILL.md` reutilizables (`chrome-operator`, `firefox-operator`, `desktop-operator`, `cv-workflow`, `windows-operator`, `workspace-operator-guide` y skills del workspace). Llama `use_skill()` sin argumentos para listarlas o `use_skill({ name })` para cargar sus instrucciones exactas.',
     '- **Sesiones paralelas aisladas:** tu sesión tiene su propio workspace activo (`select_workspace` solo cambia tu sesión sin interrumpir a otros modelos conectados en paralelo).'
   ];
@@ -273,20 +273,21 @@ export function createWorkspaceMcpServer(harness, options = {}) {
     }
   );
 
-  // Workaround for Gemini Web MCP bug: tools with readOnlyHint=false revert from
-  // 'Always allow' back to 'Always ask' after every invocation. Keep real annotations
-  // for Claude/ChatGPT/other clients, and expose readOnlyHint=true only for Google/Gemini
+  // Compatibility annotations workaround for Gemini Web MCP UI bug: tools with
+  // readOnlyHint=false revert from 'Always allow' back to 'Always ask' after every call.
+  // NOTE: This is purely a metadata hint for Gemini Web and does NOT restrict tool execution
+  // or enforce read-only mode. Real annotations are kept for Claude/ChatGPT/other clients
   // (disable anytime with GEMINI_READONLY_ANNOTATIONS=0).
   const isGeminiClient = options.isGeminiClient !== undefined
     ? Boolean(options.isGeminiClient)
     : /^google\b|gemini/i.test(String(clientLabel || '').trim());
-  const forceGeminiReadOnly =
+  const useGeminiCompatAnnotations =
     options.geminiReadOnlyAnnotations !== undefined
       ? Boolean(options.geminiReadOnlyAnnotations)
       : process.env.GEMINI_READONLY_ANNOTATIONS !== '0';
 
   const normalizeConfigForClient = (config) => {
-    if (!isGeminiClient || !forceGeminiReadOnly || !config || typeof config !== 'object') {
+    if (!isGeminiClient || !useGeminiCompatAnnotations || !config || typeof config !== 'object') {
       return config;
     }
     return {
@@ -311,15 +312,30 @@ export function createWorkspaceMcpServer(harness, options = {}) {
     }
     return origRegisterTool(name, effectiveConfig, async (args, extra) => {
       const started = Date.now();
-      const res = await handler(args, extra);
-      onToolEvent({
-        tool: name,
-        args: args || {},
-        ok: !res?.isError,
-        durationMs: Date.now() - started,
-        error: res?.isError ? res?.content?.[0]?.text : undefined
-      });
-      return res;
+      let res;
+      let thrownError = null;
+      try {
+        res = await handler(args, extra);
+        return res;
+      } catch (err) {
+        thrownError = err;
+        throw err;
+      } finally {
+        try {
+          const errorText = thrownError
+            ? (thrownError instanceof Error ? thrownError.message : String(thrownError))
+            : (res?.isError ? res?.content?.[0]?.text : undefined);
+          await onToolEvent({
+            tool: name,
+            args: args || {},
+            ok: !thrownError && !res?.isError,
+            durationMs: Date.now() - started,
+            error: errorText
+          });
+        } catch (eventErr) {
+          console.error(`[mcpTools] Error en onToolEvent (${name}):`, eventErr?.message || eventErr);
+        }
+      }
     });
   };
 
@@ -574,8 +590,8 @@ export function createWorkspaceMcpServer(harness, options = {}) {
     server,
     'run_command',
     {
-      title: 'Ejecutar Comando en Workspace',
-      description: 'Ejecuta un comando de terminal (PowerShell oculto en Windows) dentro del workspace activo para tests, builds o scripts. NO uses comandos para leer archivos/PDFs/DOCX si read_file/read_files ya lo resuelve.',
+      title: 'Ejecutar Comando PowerShell',
+      description: 'Ejecuta PowerShell oculto en Windows con los permisos completos del usuario actual (inicia en el workspace activo, pero puede acceder fuera de él; protectSensitiveFiles solo cubre las tools de archivos). Úsalo para tests, builds o scripts; NO uses comandos para leer archivos/PDFs/DOCX si read_file/read_files ya lo resuelve.',
       inputSchema: {
         command: z.string().describe('Comando a ejecutar en el directorio del workspace.'),
         cwd: z.string().optional().describe('Subcarpeta relativa dentro del workspace (por defecto ".").'),

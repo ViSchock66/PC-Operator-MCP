@@ -1,6 +1,6 @@
 ---
 name: workspace-operator-guide
-description: Master operational guide for PC-Operator-MCP on Windows 11 — workspace sandboxing, multimodal PDF/Office/image reading, batch reads, parallel isolated sessions, persistent consoles, opt-in cross-model handoff, and optional Antigravity Operator federation.
+description: Master operational guide for PC-Operator-MCP on Windows 11 — workspace-scoped file tools, full-user PowerShell commands, multimodal PDF/Office/image reading, batch reads, parallel isolated sessions, persistent consoles, opt-in cross-model handoff, and optional Antigravity Operator federation.
 ---
 
 # PC-Operator-MCP — Operational Guide
@@ -15,7 +15,7 @@ Use this guide whenever working through `PC-Operator-MCP` on Windows 11.
   - Returns **inline images** (`png`, `jpg`, `webp`, `gif`), **Office documents** (`docx`, `xlsx`, `pptx`), and **PDFs**.
   - To visually inspect PDF layout, margins, or typography, call `read_file({ path, renderPages: true, pages: "1-2" })`. This renders pages directly in Windows without opening a browser.
 - **Batch Reading (`read_files`):** Read up to 10 text, PDF, or Office files in a single round-trip.
-- **Editing & Shell:** Use `edit_file` (after `read_file`) for targeted patches, `write_file` for full writes, `git_harness` for Git inspection, and `run_command` for hidden PowerShell execution inside the active workspace.
+- **Editing & Shell:** Use `edit_file` (after `read_file`) for targeted patches, `write_file` for full writes, `git_harness` for Git inspection, and `run_command` for hidden PowerShell execution (starts in `activeWorkspace`, but runs with the current Windows user's full permissions and can access paths outside the workspace; `protectSensitiveFiles` only covers file tools).
 - **Parallel Isolated Sessions:** Each connected model/client maintains its own `activeWorkspace` override (`select_workspace` only affects the calling session).
 
 ## 2. Opt-in Cross-Model Handoff (`handoff_*`)
