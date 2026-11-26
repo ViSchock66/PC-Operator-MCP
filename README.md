@@ -1,4 +1,4 @@
-# PC Workspace & Operator MCP (`gemini-pc-mcp`)
+# PC-Operator-MCP
 
 Servidor **MCP (Streamable HTTP + OAuth 2.1 + API Keys)** para Windows 11 que conecta **Google Gemini**, **Claude (`claude.ai`)**, **ChatGPT (`chatgpt.com`)** y clientes/scripts locales a tus workspaces en disco, con lectura multimodal (texto, imágenes, PDF texto/visual, DOCX/XLSX/PPTX), skills `SKILL.md`, consolas persistentes, federación de **Antigravity Operator** (Chrome/Firefox/Escritorio) y **Handoff entre modelos 100% bajo solicitud**.
 
