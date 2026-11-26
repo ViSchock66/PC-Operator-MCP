@@ -494,6 +494,9 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
         allowDelete: typeof b.allowDelete === 'boolean' ? b.allowDelete : undefined,
         allowCommands: typeof b.allowCommands === 'boolean' ? b.allowCommands : undefined,
         protectSensitiveFiles: typeof b.protectSensitiveFiles === 'boolean' ? b.protectSensitiveFiles : undefined,
+        filterSensitiveEnv: typeof b.filterSensitiveEnv === 'boolean' ? b.filterSensitiveEnv : undefined,
+        envAllowlist: b.envAllowlist !== undefined ? b.envAllowlist : undefined,
+        envBlocklist: b.envBlocklist !== undefined ? b.envBlocklist : undefined,
         commandTimeoutMs: b.commandTimeoutMs !== undefined ? Number(b.commandTimeoutMs) : undefined,
         maxReadBytes: b.maxReadBytes !== undefined ? Number(b.maxReadBytes) : undefined
       });

@@ -133,8 +133,11 @@ function syncFormsFromState(s, force = false) {
   if ($('perm-delete')) $('perm-delete').checked = Boolean(p.allowDelete);
   if ($('perm-commands')) $('perm-commands').checked = Boolean(p.allowCommands);
   if ($('perm-sensitive')) $('perm-sensitive').checked = Boolean(p.protectSensitiveFiles);
+  if ($('perm-filter-env')) $('perm-filter-env').checked = p.filterSensitiveEnv !== false;
   if ($('perm-timeout')) $('perm-timeout').value = p.commandTimeoutMs || 30000;
   if ($('perm-max-read')) $('perm-max-read').value = p.maxReadBytes || 131072;
+  if ($('perm-env-allowlist')) $('perm-env-allowlist').value = (p.envAllowlist || []).join(', ');
+  if ($('perm-env-blocklist')) $('perm-env-blocklist').value = (p.envBlocklist || []).join(', ');
 
   const fc = s.daemons?.fullControl || {};
   if ($('fc-enabled')) {
@@ -800,6 +803,9 @@ $('form-permissions')?.addEventListener('submit', async (e) => {
       allowDelete: $('perm-delete').checked,
       allowCommands: $('perm-commands').checked,
       protectSensitiveFiles: $('perm-sensitive').checked,
+      filterSensitiveEnv: $('perm-filter-env') ? $('perm-filter-env').checked : true,
+      envAllowlist: $('perm-env-allowlist') ? $('perm-env-allowlist').value : '',
+      envBlocklist: $('perm-env-blocklist') ? $('perm-env-blocklist').value : '',
       commandTimeoutMs: Number($('perm-timeout').value),
       maxReadBytes: Number($('perm-max-read').value)
     });

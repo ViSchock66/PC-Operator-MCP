@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalizeLanguage } from './i18n.js';
+import { normalizeEnvVarList } from './shellEnv.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -305,6 +306,9 @@ export class ConfigManager {
         allowDelete: loaded.permissions?.allowDelete ?? true,
         allowCommands: loaded.permissions?.allowCommands ?? true,
         protectSensitiveFiles: loaded.permissions?.protectSensitiveFiles ?? true,
+        filterSensitiveEnv: loaded.permissions?.filterSensitiveEnv ?? true,
+        envAllowlist: normalizeEnvVarList(loaded.permissions?.envAllowlist),
+        envBlocklist: normalizeEnvVarList(loaded.permissions?.envBlocklist),
         commandTimeoutMs: Number(loaded.permissions?.commandTimeoutMs || 30000),
         maxReadBytes: Number(loaded.permissions?.maxReadBytes || 131072)
       },
@@ -405,6 +409,9 @@ export class ConfigManager {
     if (typeof patch.allowDelete === 'boolean') p.allowDelete = patch.allowDelete;
     if (typeof patch.allowCommands === 'boolean') p.allowCommands = patch.allowCommands;
     if (typeof patch.protectSensitiveFiles === 'boolean') p.protectSensitiveFiles = patch.protectSensitiveFiles;
+    if (typeof patch.filterSensitiveEnv === 'boolean') p.filterSensitiveEnv = patch.filterSensitiveEnv;
+    if (patch.envAllowlist !== undefined) p.envAllowlist = normalizeEnvVarList(patch.envAllowlist);
+    if (patch.envBlocklist !== undefined) p.envBlocklist = normalizeEnvVarList(patch.envBlocklist);
     if (Number.isFinite(patch.commandTimeoutMs) && patch.commandTimeoutMs >= 1000 && patch.commandTimeoutMs <= 300000) {
       p.commandTimeoutMs = Math.floor(patch.commandTimeoutMs);
     }
@@ -412,7 +419,11 @@ export class ConfigManager {
       p.maxReadBytes = Math.floor(patch.maxReadBytes);
     }
     this.save();
-    return { ...p };
+    return {
+      ...p,
+      envAllowlist: [...(p.envAllowlist || [])],
+      envBlocklist: [...(p.envBlocklist || [])]
+    };
   }
 
   updateTunnelConfig(patch = {}) {

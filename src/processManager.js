@@ -3,6 +3,7 @@ import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { buildSanitizedShellEnv } from './shellEnv.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -273,7 +274,7 @@ export class ProcessManager {
       cwd: resolvedCwd,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env }
+      env: buildSanitizedShellEnv(process.env, this.configManager?.get?.().permissions)
     });
 
     const rec = {

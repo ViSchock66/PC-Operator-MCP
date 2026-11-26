@@ -401,10 +401,18 @@
                   </div>
                   <input id="perm-sensitive" class="switch" type="checkbox" />
                 </label>
+
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title" data-i18n="workspaces.filterSensitiveEnvTitle">Filter sensitive environment variables in shell</span>
+                    <span class="toggle-desc" data-i18n-html="workspaces.filterSensitiveEnvDesc">Strips <code>*_API_KEY</code>, <code>*_TOKEN</code>, <code>*SECRET*</code>, <code>*PASSWORD*</code>, <code>MCP_PIN</code>, and <code>CLOUDFLARE_TUNNEL_TOKEN</code> from <code>run_command</code> and <code>process_start</code> (does not affect Antigravity Operator).</span>
+                  </div>
+                  <input id="perm-filter-env" class="switch" type="checkbox" />
+                </label>
               </div>
 
               <details class="disclosure">
-                <summary data-i18n="workspaces.advancedLimitsSummary">Advanced harness limits (command timeout &amp; max file read size)</summary>
+                <summary data-i18n="workspaces.advancedLimitsSummary">Advanced harness limits &amp; shell env overrides</summary>
                 <div class="disclosure-body">
                   <div class="form-grid">
                     <div class="field">
@@ -416,6 +424,16 @@
                       <label class="field-label" for="perm-max-read" data-i18n="workspaces.maxReadLabel">Max file read size (bytes)</label>
                       <input id="perm-max-read" class="input mono" type="number" min="1024" max="10485760" step="1024" />
                       <span class="field-hint" data-i18n="workspaces.maxReadHint">Default: 131,072 bytes (128 KB).</span>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="perm-env-allowlist" data-i18n="workspaces.envAllowlistLabel">Shell env allowlist overrides</label>
+                      <input id="perm-env-allowlist" class="input mono" type="text" data-i18n-placeholder="workspaces.envAllowlistPlaceholder" placeholder="e.g. GEMINI_API_KEY, MY_*_TOKEN" />
+                      <span class="field-hint" data-i18n="workspaces.envAllowlistHint">Comma-separated names or * patterns kept even when filtering is enabled.</span>
+                    </div>
+                    <div class="field">
+                      <label class="field-label" for="perm-env-blocklist" data-i18n="workspaces.envBlocklistLabel">Extra shell env blocklist</label>
+                      <input id="perm-env-blocklist" class="input mono" type="text" data-i18n-placeholder="workspaces.envBlocklistPlaceholder" placeholder="e.g. CORP_*, INTERNAL_CRED" />
+                      <span class="field-hint" data-i18n="workspaces.envBlocklistHint">Optional extra names or * patterns to strip from shell commands.</span>
                     </div>
                   </div>
                 </div>

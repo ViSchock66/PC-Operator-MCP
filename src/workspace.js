@@ -2,6 +2,7 @@ import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { buildSanitizedShellEnv } from './shellEnv.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -1336,7 +1337,7 @@ export class WorkspaceHarness {
       const child = spawn(shellExe, shellArgs, {
         cwd: fullPath,
         windowsHide: true,
-        env: { ...process.env }
+        env: buildSanitizedShellEnv(process.env, this.getPermissions())
       });
 
       const maxOut = 32768;
