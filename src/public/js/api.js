@@ -1,3 +1,5 @@
+import { t } from '../i18n/index.js';
+
 export const $ = (id) => document.getElementById(id);
 
 export function escapeHtml(str) {
@@ -16,14 +18,18 @@ export function toast(msg, kind = 'ok') {
   el.className = `toast ${kind}`;
   el.textContent = msg;
   stack.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  setTimeout(() => {
+    el.classList.add('toast-out');
+    setTimeout(() => el.remove(), 180);
+  }, 3000);
 }
 
-export async function copyText(text, label = 'Copiado al portapapeles') {
-  if (!text) return;
+export async function copyText(text, label = null) {
+  if (!text || text === '--') return;
+  const msg = label || t('common.copied');
   try {
     await navigator.clipboard.writeText(text);
-    toast(label, 'ok');
+    toast(msg, 'ok');
   } catch {
     const ta = document.createElement('textarea');
     ta.value = text;
@@ -33,7 +39,7 @@ export async function copyText(text, label = 'Copiado al portapapeles') {
     ta.select();
     document.execCommand('copy');
     ta.remove();
-    toast(label, 'ok');
+    toast(msg, 'ok');
   }
 }
 
@@ -46,11 +52,11 @@ export async function api(url, method = 'GET', body) {
   const res = await fetch(url, opts);
   if (res.status === 401) {
     window.location.reload();
-    throw new Error('Sesión expirada');
+    throw new Error(t('common.sessionExpired'));
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data.error || `Error HTTP ${res.status}`);
+    throw new Error(data.error || t('common.httpError', { status: res.status }));
   }
   return data;
 }
@@ -65,11 +71,11 @@ export function formatUptime(sec) {
 
 export function modeLabel(mode) {
   switch (mode) {
-    case 'tailscale': return 'Tailscale';
-    case 'cloudflare-named': return 'CF Fijo';
-    case 'cloudflare-quick': return 'CF Rápido';
-    case 'local': return 'Local';
-    default: return mode || '--';
+    case 'tailscale': return t('status.modeTailscale');
+    case 'cloudflare-named': return t('status.modeCfNamed');
+    case 'cloudflare-quick': return t('status.modeCfQuick');
+    case 'local': return t('status.modeLocal');
+    default: return mode || t('common.none');
   }
 }
 
@@ -79,25 +85,27 @@ export function operatorStatusLabel(op) {
   switch (op.status) {
     case 'connected':
       return {
-        badge: `${op.toolCount || 17} tools · ${sessCount || 1} aislada${sessCount === 1 ? '' : 's'}`,
+        badge: t('operator.badgeToolsIsolated', { tools: op.toolCount || 17, count: sessCount || 1 }),
         cls: 'badge-ok',
         text: sessCount > 1
-          ? `Conectado (${sessCount} bridges paralelos aislados)`
-          : `Conectado (PID ${op.pid || '?'} · aislado por cliente)`
+          ? t('operator.textMultiBridges', { count: sessCount })
+          : t('operator.textSingleBridge', { pid: op.pid || '?' })
       };
     case 'standby':
       return {
-        badge: op.toolCount ? `${op.toolCount} tools · Lazy` : 'Listo (Lazy)',
+        badge: op.toolCount
+          ? t('operator.badgeLazy', { tools: op.toolCount })
+          : t('operator.badgeReadyLazy'),
         cls: 'badge-ok',
-        text: 'Habilitado · 1 bridge aislado por modelo (arranca al primer uso)'
+        text: t('operator.textStandby')
       };
     case 'connecting':
-      return { badge: 'Iniciando', cls: '', text: 'Conectando con pipe-broker...' };
+      return { badge: t('operator.badgeStarting'), cls: '', text: t('operator.textStarting') };
     case 'missing':
-      return { badge: 'No hallado', cls: '', text: 'No se encontró server/index.mjs en la ruta' };
+      return { badge: t('operator.badgeMissing'), cls: '', text: t('operator.textMissing') };
     case 'error':
-      return { badge: 'Error', cls: '', text: op.lastError || 'Error al iniciar Operator' };
+      return { badge: t('operator.badgeError'), cls: 'badge-danger', text: op.lastError || t('operator.textErrorFallback') };
     default:
-      return { badge: 'Inactivo', cls: '', text: 'Deshabilitado' };
+      return { badge: t('operator.badgeOff'), cls: '', text: t('operator.textOff') };
   }
 }

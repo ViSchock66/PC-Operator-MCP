@@ -74,7 +74,7 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   await new Promise((r) => setTimeout(r, 200));
   assert.equal(shutdownCalled, true);
 
-  // 5. All refactored admin assets & icons are served cleanly
+  // 5. All refactored admin assets, modular views, i18n dictionaries & icons are served cleanly
   for (const asset of [
     '/admin/assets/favicon.svg',
     '/admin/assets/icon-32.png',
@@ -82,8 +82,16 @@ test('Tray internal loopback API security, static UI assets, and tray executable
     '/admin/assets/manifest.webmanifest',
     '/admin/assets/styles.css',
     '/admin/assets/app.js',
+    '/admin/assets/i18n/index.js',
+    '/admin/assets/i18n/en.js',
+    '/admin/assets/i18n/es.js',
     '/admin/assets/js/api.js',
-    '/admin/assets/js/render.js'
+    '/admin/assets/js/render.js',
+    '/admin/assets/js/views/overview.js',
+    '/admin/assets/js/views/workspaces.js',
+    '/admin/assets/js/views/connections.js',
+    '/admin/assets/js/views/runtime.js',
+    '/admin/assets/js/views/handoff.js'
   ]) {
     const assetRes = await fetch(`${baseUrl}${asset}`);
     assert.equal(assetRes.status, 200, `Expected 200 for ${asset}`);

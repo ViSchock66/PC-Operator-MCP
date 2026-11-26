@@ -1,21 +1,30 @@
+import { applyTranslations, getLanguage, normalizeLang, setLanguage, t } from './i18n/index.js';
 import { $, api, copyText, formatUptime, modeLabel, operatorStatusLabel, toast } from './js/api.js';
 import {
+  buildClientSnippets,
   createLogRow,
   matchesLogFilter,
   renderAuthSection,
   renderBanner,
-  renderChecklist,
   renderDaemonsList,
   renderHandoffs,
   renderKpiStrip,
   renderLogs,
   renderNetworkDetails,
+  renderOperatorHeader,
+  renderOverviewCards,
+  renderOverviewHero,
   renderParallelSessions,
+  renderSetupGuide,
+  renderSnippetBlock,
   renderWorkspacesList,
   updateFullControlCountdown
 } from './js/render.js';
 
 let state = null;
+let activeTab = 'overview';
+let activeConnSubtab = 'tunnel';
+let activeSnippet = 'claude-code';
 let pinVisible = false;
 let secretVisible = false;
 let selectedMode = 'tailscale';
@@ -23,33 +32,70 @@ let formHydrated = false;
 let localUptimeBase = null;
 let localUptimeSyncAt = 0;
 let lastCreatedApiKeyToken = '';
+let lastCreatedApiKeyName = '';
 let wsFilterText = '';
 let openDaemonLogId = null;
 let openHandoffTrailKey = null;
 let logFilter = 'all';
 let logSearch = '';
 let allLogs = [];
+let sseStatus = 'connecting';
 const daemonLogCache = new Map();
 
+const TAB_META = {
+  overview: { titleKey: 'nav.overview', subKey: 'nav.overviewSub' },
+  workspaces: { titleKey: 'nav.workspaces', subKey: 'nav.workspacesSub' },
+  connections: { titleKey: 'nav.connections', subKey: 'nav.connectionsSub' },
+  runtime: { titleKey: 'nav.runtime', subKey: 'nav.runtimeSub' },
+  handoff: { titleKey: 'nav.handoff', subKey: 'nav.handoffSub' }
+};
+
+function updateTopbarHeader() {
+  const meta = TAB_META[activeTab] || TAB_META.overview;
+  if ($('topbar-title')) $('topbar-title').textContent = t(meta.titleKey);
+  if ($('topbar-sub')) $('topbar-sub').textContent = t(meta.subKey);
+}
+
+function updateSseLabel() {
+  const sseEl = $('sse-indicator');
+  const sseText = $('sse-text');
+  if (!sseEl || !sseText) return;
+  sseEl.classList.toggle('connected', sseStatus === 'connected');
+  if (sseStatus === 'connected') sseText.textContent = t('sidebar.sseConnected');
+  else if (sseStatus === 'reconnecting') sseText.textContent = t('sidebar.sseReconnecting');
+  else sseText.textContent = t('sidebar.sseConnecting');
+}
+
 function switchTab(tabId) {
+  if (!TAB_META[tabId]) return;
+  activeTab = tabId;
   document.querySelectorAll('.tab').forEach((btn) => {
     const active = btn.dataset.tab === tabId;
     btn.classList.toggle('active', active);
-    if (active) {
-      $('topbar-title').textContent = btn.dataset.title || '';
-      $('topbar-sub').textContent = btn.dataset.subtitle || '';
-    }
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
   });
   document.querySelectorAll('.tab-panel').forEach((panel) => {
     panel.classList.toggle('active', panel.id === `tab-${tabId}`);
+  });
+  updateTopbarHeader();
+}
+
+function switchConnectionsSubtab(subtabId) {
+  activeConnSubtab = subtabId;
+  document.querySelectorAll('[data-subtab]').forEach((btn) => {
+    const active = btn.dataset.subtab === subtabId;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.subtab-panel').forEach((panel) => {
+    panel.classList.toggle('active', panel.id === `subtab-${subtabId}`);
   });
 }
 
 function updateModeCards(mode) {
   selectedMode = mode;
   document.querySelectorAll('.mode-option').forEach((card) => {
-    const m = card.dataset.mode;
-    const isSelected = m === mode;
+    const isSelected = card.dataset.mode === mode;
     card.classList.toggle('selected', isSelected);
     const radio = card.querySelector('input[type="radio"]');
     if (radio) radio.checked = isSelected;
@@ -58,9 +104,9 @@ function updateModeCards(mode) {
   const isCfNamed = mode === 'cloudflare-named';
   const isLocal = mode === 'local';
   const isQuick = mode === 'cloudflare-quick';
-  $('field-public-url').classList.toggle('hidden', isCfNamed || isLocal || isQuick);
-  $('field-custom-domain').classList.toggle('hidden', !isCfNamed);
-  $('field-cf-token').classList.toggle('hidden', !isCfNamed);
+  $('field-public-url')?.classList.toggle('hidden', isCfNamed || isLocal || isQuick);
+  $('field-custom-domain')?.classList.toggle('hidden', !isCfNamed);
+  $('field-cf-token')?.classList.toggle('hidden', !isCfNamed);
 }
 
 function syncFormsFromState(s, force = false) {
@@ -69,26 +115,26 @@ function syncFormsFromState(s, force = false) {
 
   const tc = s.tunnelConfig || {};
   updateModeCards(tc.mode || 'tailscale');
-  $('input-public-url').value = tc.publicUrl || '';
-  $('input-custom-domain').value = tc.customDomain || '';
-  $('input-cf-token').value = tc.hasCloudflareToken ? (tc.cloudflareTokenPreview || '') : '';
-  $('chk-autostart').checked = Boolean(tc.autoStart);
+  if ($('input-public-url')) $('input-public-url').value = tc.publicUrl || '';
+  if ($('input-custom-domain')) $('input-custom-domain').value = tc.customDomain || '';
+  if ($('input-cf-token')) $('input-cf-token').value = tc.hasCloudflareToken ? (tc.cloudflareTokenPreview || '') : '';
+  if ($('chk-autostart')) $('chk-autostart').checked = Boolean(tc.autoStart);
 
-  $('input-oauth-origins').value = (s.auth?.allowedRedirectOrigins || []).join('\n');
-  $('input-port').value = s.server?.port ?? 3333;
-  $('input-pin').value = s.auth?.pin || '';
+  if ($('input-oauth-origins')) $('input-oauth-origins').value = (s.auth?.allowedRedirectOrigins || []).join('\n');
+  if ($('input-port')) $('input-port').value = s.server?.port ?? 3333;
+  if ($('input-pin')) $('input-pin').value = s.auth?.pin || '';
 
   const op = s.operator || {};
-  $('op-enabled').checked = Boolean(op.enabled);
-  $('op-server-path').value = op.serverPath || '';
+  if ($('op-enabled')) $('op-enabled').checked = Boolean(op.enabled);
+  if ($('op-server-path')) $('op-server-path').value = op.serverPath || '';
 
   const p = s.permissions || {};
-  $('perm-write').checked = Boolean(p.allowWrite);
-  $('perm-delete').checked = Boolean(p.allowDelete);
-  $('perm-commands').checked = Boolean(p.allowCommands);
-  $('perm-sensitive').checked = Boolean(p.protectSensitiveFiles);
-  $('perm-timeout').value = p.commandTimeoutMs || 30000;
-  $('perm-max-read').value = p.maxReadBytes || 131072;
+  if ($('perm-write')) $('perm-write').checked = Boolean(p.allowWrite);
+  if ($('perm-delete')) $('perm-delete').checked = Boolean(p.allowDelete);
+  if ($('perm-commands')) $('perm-commands').checked = Boolean(p.allowCommands);
+  if ($('perm-sensitive')) $('perm-sensitive').checked = Boolean(p.protectSensitiveFiles);
+  if ($('perm-timeout')) $('perm-timeout').value = p.commandTimeoutMs || 30000;
+  if ($('perm-max-read')) $('perm-max-read').value = p.maxReadBytes || 131072;
 
   const fc = s.daemons?.fullControl || {};
   if ($('fc-enabled')) {
@@ -107,6 +153,8 @@ function appendLogEntry(entry) {
   if (!matchesLogFilter(entry, logFilter, logSearch)) return;
   const box = $('console-box');
   if (!box) return;
+  const emptyEl = box.querySelector('.console-empty');
+  if (emptyEl) emptyEl.remove();
   const wasNearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 48;
   box.appendChild(createLogRow(entry));
   while (box.children.length > 300) {
@@ -117,101 +165,127 @@ function appendLogEntry(entry) {
   }
 }
 
-function renderState(s, { forceForms = false } = {}) {
+function updateTopbarTunnelButtons(tun) {
+  const startBtn = $('btn-tunnel-start');
+  const restartBtn = $('btn-tunnel-restart');
+  const stopBtn = $('btn-tunnel-stop');
+  const isRunning = tun.status === 'running';
+  const isStarting = tun.status === 'starting';
+  const isStopped = tun.status === 'stopped';
+
+  if (startBtn) {
+    startBtn.classList.toggle('hidden', isRunning || isStarting);
+    startBtn.disabled = isRunning || isStarting;
+  }
+  if (restartBtn) {
+    restartBtn.classList.toggle('hidden', isStopped);
+    restartBtn.disabled = isStarting;
+  }
+  if (stopBtn) {
+    stopBtn.classList.toggle('hidden', isStopped);
+    stopBtn.disabled = isStopped;
+  }
+}
+
+function applyLanguageLive(lang) {
+  const normalized = normalizeLang(lang);
+  setLanguage(normalized);
+  applyTranslations(document);
+  updateTopbarHeader();
+  updateSseLabel();
+  if (lastCreatedApiKeyName && $('new-apikey-title')) {
+    $('new-apikey-title').textContent = t('connections.newKeyBannerTitle', { name: lastCreatedApiKeyName });
+  }
+  if (state) {
+    renderState(state, { skipLangSync: true });
+    renderLogs(allLogs, { filter: logFilter, search: logSearch });
+  }
+}
+
+function renderState(s, { forceForms = false, skipLangSync = false } = {}) {
   state = s;
+
+  if (!skipLangSync && s.ui?.language) {
+    const serverLang = normalizeLang(s.ui.language);
+    if (serverLang !== getLanguage()) {
+      setLanguage(serverLang);
+      applyTranslations(document);
+      updateTopbarHeader();
+      updateSseLabel();
+    }
+  }
+
   localUptimeBase = s.tunnel?.uptimeSec ?? 0;
   localUptimeSyncAt = Date.now();
 
-  const t = s.tunnel || {};
+  if ($('app-version-chip') && s.server?.version) {
+    $('app-version-chip').textContent = `v${s.server.version}`;
+  }
+
+  const tun = s.tunnel || {};
   const statusPill = $('status-pill');
   const statusText = $('status-pill-text');
-  statusPill.className = 'pill';
-  if (t.status === 'running') {
-    statusPill.classList.add('pill-running');
-    statusText.textContent = 'ACTIVO';
-  } else if (t.status === 'starting' || t.status === 'needs_action') {
-    statusPill.classList.add('pill-warn');
-    statusText.textContent = t.status === 'starting' ? 'INICIANDO' : 'ACCIÓN';
-  } else if (t.status === 'error') {
-    statusPill.classList.add('pill-error');
-    statusText.textContent = 'ERROR';
-  } else {
-    statusText.textContent = 'DETENIDO';
+  if (statusPill && statusText) {
+    statusPill.className = 'pill';
+    if (tun.status === 'running') {
+      statusPill.classList.add('pill-running');
+      statusText.textContent = t('status.running');
+    } else if (tun.status === 'starting' || tun.status === 'needs_action') {
+      statusPill.classList.add('pill-warn');
+      statusText.textContent = tun.status === 'starting' ? t('status.starting') : t('status.needsAction');
+    } else if (tun.status === 'error') {
+      statusPill.classList.add('pill-error');
+      statusText.textContent = t('status.error');
+    } else {
+      statusText.textContent = t('status.stopped');
+    }
   }
 
-  $('pid-badge').textContent = `PID ${s.server?.pid || '--'}`;
-  $('uptime-text').textContent = formatUptime(localUptimeBase);
-  $('sidebar-mode-val').textContent = modeLabel(t.mode || s.tunnelConfig?.mode);
+  if ($('pid-badge')) $('pid-badge').textContent = `PID ${s.server?.pid || '--'}`;
+  if ($('uptime-text')) $('uptime-text').textContent = formatUptime(localUptimeBase);
+  if ($('sidebar-mode-val')) $('sidebar-mode-val').textContent = modeLabel(tun.mode || s.tunnelConfig?.mode);
 
-  const mcpUrl = t.mcpUrl || t.localMcpUrl || '--';
-  const geminiMcpUrl = t.geminiMcpUrl || (mcpUrl !== '--' ? `${mcpUrl}/gemini` : '--');
-  $('sidebar-mcp-url').textContent = mcpUrl;
-  $('dash-mcp-url').textContent = mcpUrl;
-  if ($('dash-gemini-mcp-url')) $('dash-gemini-mcp-url').textContent = geminiMcpUrl;
-  $('guide-mcp-url').textContent = mcpUrl;
-  if ($('guide-gemini-mcp-url')) $('guide-gemini-mcp-url').textContent = geminiMcpUrl;
-  $('dash-local-url').textContent = t.localMcpUrl || '--';
-  $('dash-active-ws').textContent = `Workspace: ${s.workspaces?.active || '--'}`;
+  const mcpUrl = tun.mcpUrl || tun.localMcpUrl || '--';
+  if ($('sidebar-mcp-url')) $('sidebar-mcp-url').textContent = mcpUrl;
 
-  $('btn-tunnel-start').disabled = t.status === 'running' || t.status === 'starting';
-  $('btn-tunnel-stop').disabled = t.status === 'stopped';
-
-  $('dash-pin').textContent = pinVisible ? (s.auth?.pin || '--') : '••••••••';
-  $('btn-toggle-pin').textContent = pinVisible ? 'Ocultar' : 'Ver';
-
-  $('dash-client-id').textContent = s.auth?.staticClient?.client_id || '--';
-  $('dash-client-secret').textContent = secretVisible
-    ? (s.auth?.staticClient?.client_secret || '--')
-    : '••••••••••••••••••••';
-  $('btn-toggle-secret').textContent = secretVisible ? 'Ocultar' : 'Ver';
+  updateTopbarTunnelButtons(tun);
 
   const opInfo = operatorStatusLabel(s.operator);
-  $('dash-op-status').textContent = opInfo.text;
-  $('dash-op-badge').textContent = opInfo.badge;
-  $('dash-op-badge').className = `nav-badge ${opInfo.cls}`;
-  $('op-tab-badge').textContent = opInfo.badge;
-  $('op-tab-badge').className = `nav-badge ${opInfo.cls}`;
 
-  const ts = t.env?.tailscale;
-  if (!ts) {
-    $('ts-status-text').textContent = 'Pulsa Detectar Red';
-    $('ts-funnel-badge').textContent = '--';
-    $('ts-dns-text').textContent = s.tunnelConfig?.publicUrl || '--';
-    $('btn-use-ts-url').classList.add('hidden');
-  } else if (!ts.installed) {
-    $('ts-status-text').textContent = 'No instalado';
-    $('ts-funnel-badge').textContent = 'N/A';
-    $('ts-dns-text').textContent = '--';
-    $('btn-use-ts-url').classList.add('hidden');
-  } else {
-    $('ts-status-text').textContent = ts.online
-      ? `Conectado (${ts.tailnetIp || 'Tailnet OK'})`
-      : 'Instalado (Desconectado)';
-    $('ts-funnel-badge').textContent = ts.funnelActive ? 'Funnel ON' : 'Funnel OFF';
-    $('ts-funnel-badge').className = `nav-badge ${ts.funnelActive ? 'badge-ok' : ''}`;
-    $('ts-dns-text').textContent = ts.suggestedUrl || ts.dnsName || '--';
-    const needsApply = Boolean(ts.suggestedUrl && s.tunnelConfig?.publicUrl !== ts.suggestedUrl);
-    $('btn-use-ts-url').classList.toggle('hidden', !needsApply);
-  }
-
+  renderBanner(s);
+  renderOverviewHero(s);
   renderKpiStrip(s, opInfo);
+  renderOverviewCards(s, opInfo, { pinVisible, secretVisible });
+  renderWorkspacesList(s, wsFilterText);
   renderNetworkDetails(s);
   renderAuthSection(s);
+  renderSetupGuide(s, opInfo, activeSnippet);
+  renderOperatorHeader(opInfo);
   renderParallelSessions(s);
   updateFullControlCountdown(s);
   renderDaemonsList(s, { openDaemonLogId, daemonLogCache });
   renderHandoffs(s, { openTrailKey: openHandoffTrailKey });
-  renderWorkspacesList(s, wsFilterText);
-  renderChecklist(s, opInfo);
-  renderBanner(s);
   syncFormsFromState(s, forceForms);
 }
 
-async function runTunnelAction(endpoint, label) {
+async function switchLanguage(lang) {
+  const target = normalizeLang(lang);
+  if (target === getLanguage()) return;
+  applyLanguageLive(target);
+  try {
+    const res = await api('/admin/api/config/ui', 'POST', { language: target });
+    if (res.state) renderState(res.state, { skipLangSync: true });
+    toast(t('langToast.switched'));
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function runTunnelAction(endpoint, toastKey) {
   try {
     const res = await api(endpoint, 'POST', {});
     renderState(res.state);
-    toast(label);
+    toast(t(toastKey));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -223,11 +297,11 @@ async function detectTailscale(applySuggested = false) {
     renderState(res.state, { forceForms: applySuggested });
     const url = res.env?.tailscale?.suggestedUrl;
     if (applySuggested && url) {
-      toast(`URL fija aplicada: ${url}`);
+      toast(t('connections.toastFixedUrlApplied', { url }));
     } else if (url) {
-      toast(`Tailscale detectado: ${url}`);
+      toast(t('connections.toastTsDetected', { url }));
     } else {
-      toast('Detección de red completada');
+      toast(t('connections.toastDetectDone'));
     }
   } catch (err) {
     toast(err.message, 'err');
@@ -246,7 +320,7 @@ async function saveTunnelConfig(applyNow) {
     };
     const res = await api('/admin/api/config/tunnel', 'POST', payload);
     renderState(res.state, { forceForms: true });
-    toast(applyNow ? 'Configuración guardada y túnel aplicado' : 'Configuración de dominio guardada');
+    toast(t(applyNow ? 'connections.toastTunnelApplied' : 'connections.toastTunnelSaved'));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -256,7 +330,7 @@ async function restartOperatorBridge() {
   try {
     const res = await api('/admin/api/operator/restart', 'POST', {});
     renderState(res.state);
-    toast('Antigravity Operator conectado');
+    toast(t('runtime.toastOpConnected'));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -270,30 +344,59 @@ async function saveFullControlFromForm() {
     stopProcessesOnDisable: $('fc-stop-on-off').checked
   });
   renderState(res.state, { forceForms: true });
-  toast(res.fullControl?.enabled ? 'Modo Control Total ACTIVADO' : 'Modo Control Total apagado');
+  toast(t(res.fullControl?.enabled ? 'runtime.toastFcOn' : 'runtime.toastFcOff'));
 }
 
 async function refreshDaemonLogs(id) {
   const res = await api(`/admin/api/processes/${encodeURIComponent(id)}/output?tailLines=150`);
-  daemonLogCache.set(id, res.output || '(sin salida)');
+  daemonLogCache.set(id, res.output || t('runtime.noOutput'));
   if (state) renderDaemonsList(state, { openDaemonLogId, daemonLogCache });
 }
 
-// Navigation & keyboard shortcuts
+// Primary navigation & keyboard shortcuts (1-5)
 document.querySelectorAll('.tab').forEach((btn) => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tab));
 });
 
+document.querySelectorAll('[data-jump-tab]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    switchTab(btn.dataset.jumpTab);
+    if (btn.dataset.jumpSubtab) switchConnectionsSubtab(btn.dataset.jumpSubtab);
+  });
+});
+
+document.querySelectorAll('[data-subtab]').forEach((btn) => {
+  btn.addEventListener('click', () => switchConnectionsSubtab(btn.dataset.subtab));
+});
+
+document.querySelectorAll('[data-snippet-tab]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    activeSnippet = btn.dataset.snippetTab || 'claude-code';
+    const mcpUrl = state?.tunnel?.mcpUrl || state?.tunnel?.localMcpUrl || '--';
+    renderSnippetBlock(mcpUrl, activeSnippet);
+  });
+});
+
+$('btn-copy-snippet')?.addEventListener('click', () => {
+  const mcpUrl = state?.tunnel?.mcpUrl || state?.tunnel?.localMcpUrl || '--';
+  const snippets = buildClientSnippets(mcpUrl);
+  copyText(snippets[activeSnippet] || '', t('connections.snippetCopied'));
+});
+
+// Live EN | ES switcher
+document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
+  btn.addEventListener('click', () => switchLanguage(btn.dataset.langBtn));
+});
+
 const TAB_KEYS = {
-  '1': 'dashboard',
-  '2': 'auth',
-  '3': 'network',
-  '4': 'workspaces',
-  '5': 'operator',
-  '6': 'handoff',
-  '7': 'guide'
+  '1': 'overview',
+  '2': 'workspaces',
+  '3': 'connections',
+  '4': 'runtime',
+  '5': 'handoff'
 };
 document.addEventListener('keydown', (e) => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
   if (TAB_KEYS[e.key]) switchTab(TAB_KEYS[e.key]);
 });
@@ -301,7 +404,7 @@ document.addEventListener('keydown', (e) => {
 $('banner-area')?.addEventListener('click', (e) => {
   const act = e.target.closest('[data-tunnel-action]');
   if (act?.dataset.tunnelAction === 'restart') {
-    runTunnelAction('/admin/api/tunnel/restart', 'Túnel reiniciado');
+    runTunnelAction('/admin/api/tunnel/restart', 'topbar.tunnelRestarted');
   }
 });
 
@@ -328,95 +431,104 @@ document.querySelectorAll('[data-copy-target]').forEach((btn) => {
     if (target) copyText(target.textContent.trim());
   });
 });
-$('sidebar-copy-mcp').addEventListener('click', () => {
-  copyText($('sidebar-mcp-url').textContent.trim(), 'URL MCP copiada');
+$('sidebar-copy-mcp')?.addEventListener('click', () => {
+  copyText($('sidebar-mcp-url')?.textContent.trim(), t('sidebar.copyMcpToast'));
+});
+$('btn-hero-copy')?.addEventListener('click', () => {
+  copyText($('hero-url-pill')?.textContent.trim(), t('sidebar.copyMcpToast'));
 });
 
-$('btn-toggle-pin').addEventListener('click', () => {
+$('btn-toggle-pin')?.addEventListener('click', () => {
   pinVisible = !pinVisible;
-  if (state) renderState(state);
+  if (state) renderState(state, { skipLangSync: true });
 });
-$('btn-copy-pin').addEventListener('click', () => {
-  if (state?.auth?.pin) copyText(state.auth.pin, 'PIN copiado');
+$('btn-copy-pin')?.addEventListener('click', () => {
+  if (state?.auth?.pin) copyText(state.auth.pin, t('overview.pinCopied'));
 });
-$('btn-toggle-secret').addEventListener('click', () => {
+$('btn-toggle-secret')?.addEventListener('click', () => {
   secretVisible = !secretVisible;
-  if (state) renderState(state);
+  if (state) renderState(state, { skipLangSync: true });
 });
-$('btn-copy-secret').addEventListener('click', () => {
+$('btn-copy-secret')?.addEventListener('click', () => {
   if (state?.auth?.staticClient?.client_secret) {
-    copyText(state.auth.staticClient.client_secret, 'Secreto OAuth copiado');
+    copyText(state.auth.staticClient.client_secret, t('overview.secretCopied'));
   }
 });
-$('btn-copy-oauth-bundle').addEventListener('click', () => {
-  if (!state?.auth?.staticClient) return;
-  const c = state.auth.staticClient;
-  copyText(`ID de cliente: ${c.client_id}\nSecreto de cliente: ${c.client_secret}`, 'Credenciales OAuth copiadas');
+document.querySelectorAll('[data-copy-oauth-bundle]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    if (!state?.auth?.staticClient) return;
+    const c = state.auth.staticClient;
+    copyText(
+      `Client ID: ${c.client_id}\nClient Secret: ${c.client_secret}`,
+      t('overview.oauthBundleCopied')
+    );
+  });
 });
 
 // Tunnel & network
-$('btn-tunnel-start').addEventListener('click', () => runTunnelAction('/admin/api/tunnel/start', 'Túnel iniciado'));
-$('btn-tunnel-restart').addEventListener('click', () => runTunnelAction('/admin/api/tunnel/restart', 'Túnel reiniciado'));
-$('btn-tunnel-stop').addEventListener('click', () => runTunnelAction('/admin/api/tunnel/stop', 'Túnel detenido'));
-$('btn-detect-tailscale').addEventListener('click', () => detectTailscale(false));
-$('btn-use-ts-url').addEventListener('click', () => detectTailscale(true));
-$('btn-detect-in-domain').addEventListener('click', () => detectTailscale(true));
+$('btn-tunnel-start')?.addEventListener('click', () => runTunnelAction('/admin/api/tunnel/start', 'topbar.tunnelStarted'));
+$('btn-tunnel-restart')?.addEventListener('click', () => runTunnelAction('/admin/api/tunnel/restart', 'topbar.tunnelRestarted'));
+$('btn-tunnel-stop')?.addEventListener('click', () => runTunnelAction('/admin/api/tunnel/stop', 'topbar.tunnelStopped'));
+$('btn-detect-tailscale')?.addEventListener('click', () => detectTailscale(false));
+$('btn-use-ts-url')?.addEventListener('click', () => detectTailscale(true));
+$('btn-detect-in-domain')?.addEventListener('click', () => detectTailscale(true));
 
-$('form-tunnel').addEventListener('submit', (e) => {
+$('form-tunnel')?.addEventListener('submit', (e) => {
   e.preventDefault();
   saveTunnelConfig(true);
 });
-$('btn-save-tunnel-only').addEventListener('click', () => saveTunnelConfig(false));
+$('btn-save-tunnel-only')?.addEventListener('click', () => saveTunnelConfig(false));
 
 // Auth & server config
-$('form-oauth-origins').addEventListener('submit', async (e) => {
+$('form-oauth-origins')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const lines = $('input-oauth-origins').value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
     const res = await api('/admin/api/config/oauth', 'POST', { allowedRedirectOrigins: lines });
     renderState(res.state, { forceForms: true });
-    toast('Orígenes OAuth personalizados guardados');
+    toast(t('connections.toastOriginsSaved'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('form-create-apikey').addEventListener('submit', async (e) => {
+$('form-create-apikey')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    const name = $('input-apikey-name').value.trim() || 'Conector Personalizado';
+    const name = $('input-apikey-name').value.trim() || t('connections.defaultKeyName');
     const res = await api('/admin/api/auth/api-keys', 'POST', { name });
     $('input-apikey-name').value = '';
     if (res.createdKey?.token) {
       lastCreatedApiKeyToken = res.createdKey.token;
-      $('new-apikey-name').textContent = res.createdKey.name;
+      lastCreatedApiKeyName = res.createdKey.name;
+      $('new-apikey-title').textContent = t('connections.newKeyBannerTitle', { name: res.createdKey.name });
       $('new-apikey-token').textContent = res.createdKey.token;
       $('new-apikey-banner').classList.remove('hidden');
     }
     renderState(res.state);
-    toast('API Key generada');
+    toast(t('connections.toastKeyCreated'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-copy-new-apikey').addEventListener('click', () => {
-  if (lastCreatedApiKeyToken) copyText(lastCreatedApiKeyToken, 'API Key copiada al portapapeles');
+$('btn-copy-new-apikey')?.addEventListener('click', () => {
+  if (lastCreatedApiKeyToken) copyText(lastCreatedApiKeyToken, t('connections.toastKeyCopied'));
 });
 
-$('apikeys-list').addEventListener('click', async (e) => {
+$('apikeys-list')?.addEventListener('click', async (e) => {
   const rev = e.target.closest('[data-revoke-apikey]');
   if (!rev) return;
   try {
     const res = await api(`/admin/api/auth/api-keys/${encodeURIComponent(rev.dataset.revokeApikey)}`, 'DELETE');
     renderState(res.state);
-    toast('API Key revocada');
+    toast(t('connections.toastKeyRevoked'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('form-server').addEventListener('submit', async (e) => {
+$('form-server')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const res = await api('/admin/api/config/server', 'POST', {
@@ -424,45 +536,45 @@ $('form-server').addEventListener('submit', async (e) => {
       pin: $('input-pin').value.trim()
     });
     renderState(res.state, { forceForms: true });
-    toast(res.portChanged ? 'Puerto y PIN guardados (reinicia el daemon para cambiar puerto)' : 'Parámetros guardados');
+    toast(t(res.portChanged ? 'connections.toastPortPinRestart' : 'connections.toastServerSaved'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-regen-pin').addEventListener('click', async () => {
+$('btn-regen-pin')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/config/server', 'POST', { regeneratePin: true });
     renderState(res.state, { forceForms: true });
-    toast(`Nuevo PIN generado: ${res.state.auth.pin}`);
+    toast(t('connections.toastNewPin', { pin: res.state.auth.pin }));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-regen-client').addEventListener('click', async () => {
-  if (!confirm('¿Regenerar ID y Secreto OAuth estático? Tendrás que actualizarlos en los clientes donde los hayas pegado.')) return;
+$('btn-regen-client')?.addEventListener('click', async () => {
+  if (!confirm(t('connections.confirmRegenClient'))) return;
   try {
     const res = await api('/admin/api/config/server', 'POST', { regenerateStaticClient: true });
     renderState(res.state, { forceForms: true });
-    toast('Credenciales OAuth regeneradas');
+    toast(t('connections.toastClientRegen'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-revoke-sessions').addEventListener('click', async () => {
+$('btn-revoke-sessions')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/auth/revoke-all', 'POST', {});
     renderState(res.state);
-    toast('Sesiones OAuth revocadas');
+    toast(t('connections.toastSessionsRevoked'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-// Operator & Daemons
-$('form-operator').addEventListener('submit', async (e) => {
+// Runtime: Operator & Daemons
+$('form-operator')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const res = await api('/admin/api/config/operator', 'POST', {
@@ -471,20 +583,20 @@ $('form-operator').addEventListener('submit', async (e) => {
       connectNow: $('op-enabled').checked
     });
     renderState(res.state, { forceForms: true });
-    toast('Configuración de Antigravity Operator aplicada');
+    toast(t('runtime.toastOpSaved'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-op-restart').addEventListener('click', restartOperatorBridge);
-$('btn-dash-test-op').addEventListener('click', restartOperatorBridge);
+$('btn-op-restart')?.addEventListener('click', restartOperatorBridge);
+$('btn-dash-test-op')?.addEventListener('click', restartOperatorBridge);
 
-$('btn-op-stop').addEventListener('click', async () => {
+$('btn-op-stop')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/operator/stop', 'POST', {});
     renderState(res.state);
-    toast('Antigravity Operator puesto en espera');
+    toast(t('runtime.toastOpStandby'));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -496,7 +608,7 @@ $('parallel-sessions-list')?.addEventListener('click', async (e) => {
   try {
     const res = await api(`/admin/api/operator/sessions/${encodeURIComponent(btn.dataset.stopOpSession)}/stop`, 'POST', {});
     renderState(res.state);
-    toast('Bridge aislado cerrado (otros clientes siguen intactos)');
+    toast(t('runtime.toastBridgeClosed'));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -514,7 +626,7 @@ $('btn-daemons-stop-all')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/processes/stop-all', 'POST', {});
     renderState(res.state);
-    toast(`Procesos detenidos: ${res.stopped || 0}`);
+    toast(t('runtime.toastStoppedAll', { count: res.stopped || 0 }));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -524,7 +636,7 @@ $('btn-daemons-clear')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/processes/clear-exited', 'POST', {});
     renderState(res.state);
-    toast(`Procesos terminados limpiados: ${res.removed || 0}`);
+    toast(t('runtime.toastClearedExited', { count: res.removed || 0 }));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -542,7 +654,7 @@ $('form-launch-daemon')?.addEventListener('submit', async (e) => {
     openDaemonLogId = res.process?.id || null;
     if (res.process?.id) daemonLogCache.set(res.process.id, res.process.tailPreview || '');
     renderState(res.state);
-    toast(`Demonio lanzado (PID ${res.process?.pid || '?'})`);
+    toast(t('runtime.toastDaemonLaunched', { pid: res.process?.pid || '?' }));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -571,7 +683,10 @@ $('daemons-list')?.addEventListener('click', async (e) => {
     const id = sendBtn.dataset.procSend;
     const inp = $(`daemon-stdin-${id}`);
     try {
-      await api(`/admin/api/processes/${encodeURIComponent(id)}/input`, 'POST', { input: inp ? inp.value : '', appendNewline: true });
+      await api(`/admin/api/processes/${encodeURIComponent(id)}/input`, 'POST', {
+        input: inp ? inp.value : '',
+        appendNewline: true
+      });
       if (inp) inp.value = '';
       await refreshDaemonLogs(id);
     } catch (err) {
@@ -584,20 +699,20 @@ $('daemons-list')?.addEventListener('click', async (e) => {
     try {
       const res = await api(`/admin/api/processes/${encodeURIComponent(stopBtn.dataset.procStop)}/stop`, 'POST', {});
       renderState(res.state);
-      toast('Proceso detenido');
+      toast(t('runtime.toastProcessStopped'));
     } catch (err) {
       toast(err.message, 'err');
     }
   }
 });
 
-// Cross-Model Handoff actions
+// Handoff actions
 $('btn-handoff-clear-resumed')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/handoffs/delete', 'POST', { action: 'clear_resumed' });
     renderState(res.state);
     const n = res.pruned?.removedCheckpoints || 0;
-    toast(n > 0 ? `Checkpoints retomados limpiados (${n})` : 'No había checkpoints retomados');
+    toast(n > 0 ? t('handoff.toastClearedResumed', { count: n }) : t('handoff.toastNoneResumed'));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -622,8 +737,8 @@ $('handoff-trails-list')?.addEventListener('click', async (e) => {
       });
       if (noteInput) noteInput.value = '';
       renderState(res.state);
-      if (res.prompt) await copyText(res.prompt, 'Checkpoint creado y prompt copiado');
-      else toast('Checkpoint de handoff creado');
+      if (res.prompt) await copyText(res.prompt, t('handoff.toastFrozenCopied'));
+      else toast(t('handoff.toastFrozen'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -633,7 +748,7 @@ $('handoff-trails-list')?.addEventListener('click', async (e) => {
   if (copyBtn) {
     try {
       const res = await api('/admin/api/handoffs/prompt', 'POST', { trailKey: copyBtn.dataset.handoffCopyTrail });
-      await copyText(res.prompt, 'Prompt de relevo copiado al portapapeles');
+      await copyText(res.prompt, t('handoff.toastTrailPromptCopied'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -646,7 +761,7 @@ $('handoff-trails-list')?.addEventListener('click', async (e) => {
       const res = await api('/admin/api/handoffs/delete', 'POST', { trailKey: key });
       if (openHandoffTrailKey === key) openHandoffTrailKey = null;
       renderState(res.state);
-      toast('Rastro limpiado');
+      toast(t('handoff.toastTrailCleared'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -658,7 +773,7 @@ $('handoff-checkpoints-list')?.addEventListener('click', async (e) => {
   if (copyBtn) {
     try {
       const res = await api('/admin/api/handoffs/prompt', 'POST', { id: copyBtn.dataset.handoffCopyId });
-      await copyText(res.prompt, 'Prompt de handoff copiado al portapapeles');
+      await copyText(res.prompt, t('handoff.toastCpPromptCopied'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -669,7 +784,7 @@ $('handoff-checkpoints-list')?.addEventListener('click', async (e) => {
     try {
       const res = await api('/admin/api/handoffs/delete', 'POST', { id: delBtn.dataset.handoffDeleteId });
       renderState(res.state);
-      toast('Checkpoint eliminado');
+      toast(t('handoff.toastCpDeleted'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -677,7 +792,7 @@ $('handoff-checkpoints-list')?.addEventListener('click', async (e) => {
 });
 
 // Workspaces & Permissions
-$('form-permissions').addEventListener('submit', async (e) => {
+$('form-permissions')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
     const res = await api('/admin/api/config/permissions', 'POST', {
@@ -689,13 +804,13 @@ $('form-permissions').addEventListener('submit', async (e) => {
       maxReadBytes: Number($('perm-max-read').value)
     });
     renderState(res.state, { forceForms: true });
-    toast('Permisos y límites guardados');
+    toast(t('workspaces.toastSaved'));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('form-add-ws').addEventListener('submit', async (e) => {
+$('form-add-ws')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const p = $('input-ws-path').value.trim();
   if (!p) return;
@@ -703,17 +818,17 @@ $('form-add-ws').addEventListener('submit', async (e) => {
     const res = await api('/admin/api/workspaces/add', 'POST', { path: p });
     $('input-ws-path').value = '';
     renderState(res.state);
-    toast(`Workspace activado: ${res.workspace}`);
+    toast(t('workspaces.toastActivated', { path: res.workspace }));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('btn-pick-folder').addEventListener('click', async () => {
+$('btn-pick-folder')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/workspaces/pick', 'POST', {});
     renderState(res.state);
-    toast(res.cancelled ? 'Selección cancelada' : `Workspace activado: ${res.workspace}`);
+    toast(res.cancelled ? t('workspaces.toastCancelled') : t('workspaces.toastActivated', { path: res.workspace }));
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -728,18 +843,18 @@ $('btn-ws-reset-sessions')?.addEventListener('click', async () => {
   try {
     const res = await api('/admin/api/workspaces/reset-sessions', 'POST', {});
     renderState(res.state);
-    toast(`Sesiones sincronizadas al workspace global (${res.cleared || 0} restablecidas)`);
+    toast(t('workspaces.toastSynced', { count: res.cleared || 0 }));
   } catch (err) {
     toast(err.message, 'err');
   }
 });
 
-$('ws-list').addEventListener('click', async (e) => {
+$('ws-list')?.addEventListener('click', async (e) => {
   const openBtn = e.target.closest('[data-ws-open]');
   if (openBtn) {
     try {
       await api('/admin/api/workspaces/open', 'POST', { path: openBtn.dataset.wsOpen });
-      toast('Abierto en Explorador de Windows');
+      toast(t('workspaces.toastOpened'));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -747,7 +862,7 @@ $('ws-list').addEventListener('click', async (e) => {
   }
   const copyBtn = e.target.closest('[data-ws-copy]');
   if (copyBtn) {
-    copyText(copyBtn.dataset.wsCopy, 'Ruta del workspace copiada');
+    copyText(copyBtn.dataset.wsCopy, t('workspaces.toastPathCopied'));
     return;
   }
   const sel = e.target.closest('[data-ws-select]');
@@ -755,7 +870,7 @@ $('ws-list').addEventListener('click', async (e) => {
     try {
       const res = await api('/admin/api/workspaces/select', 'POST', { path: sel.dataset.wsSelect });
       renderState(res.state);
-      toast(`Workspace activo: ${res.workspace}`);
+      toast(t('workspaces.toastSelected', { path: res.workspace }));
     } catch (err) {
       toast(err.message, 'err');
     }
@@ -766,24 +881,24 @@ $('ws-list').addEventListener('click', async (e) => {
     try {
       const res = await api('/admin/api/workspaces/remove', 'POST', { path: rem.dataset.wsRemove });
       renderState(res.state);
-      toast('Workspace quitado');
+      toast(t('workspaces.toastRemoved'));
     } catch (err) {
       toast(err.message, 'err');
     }
   }
 });
 
-$('btn-clear-logs').addEventListener('click', async () => {
+$('btn-clear-logs')?.addEventListener('click', async () => {
   await api('/admin/api/logs/clear', 'POST', {}).catch(() => {});
   allLogs = [];
-  $('console-box').innerHTML = '';
+  renderLogs(allLogs, { filter: logFilter, search: logSearch });
 });
 
-$('btn-shutdown-daemon').addEventListener('click', async () => {
-  if (!confirm('¿Apagar el servidor MCP, cerrar el túnel y quitar el icono de la bandeja?')) return;
+$('btn-shutdown-daemon')?.addEventListener('click', async () => {
+  if (!confirm(t('nav.shutdownConfirm'))) return;
   try {
     await api('/admin/api/daemon/shutdown', 'POST', {});
-    toast('Daemon apagándose...');
+    toast(t('nav.shutdownToast'));
     setTimeout(() => window.close(), 500);
   } catch (err) {
     toast(err.message, 'err');
@@ -792,7 +907,7 @@ $('btn-shutdown-daemon').addEventListener('click', async () => {
 
 // Uptime + Full Control countdown ticker
 setInterval(() => {
-  if (localUptimeBase !== null) {
+  if (localUptimeBase !== null && $('uptime-text')) {
     const elapsed = Math.floor((Date.now() - localUptimeSyncAt) / 1000);
     $('uptime-text').textContent = formatUptime(localUptimeBase + elapsed);
   }
@@ -802,13 +917,11 @@ setInterval(() => {
 }, 1000);
 
 function connectSse() {
-  const sseEl = $('sse-indicator');
-  const sseText = $('sse-text');
   const es = new EventSource('/admin/api/events');
 
   es.onopen = () => {
-    sseEl.classList.add('connected');
-    sseText.textContent = 'Daemon conectado · Tray activo';
+    sseStatus = 'connected';
+    updateSseLabel();
   };
 
   es.onmessage = (ev) => {
@@ -824,7 +937,7 @@ function connectSse() {
         appendLogEntry(msg.entry);
       } else if (msg.type === 'logs_cleared') {
         allLogs = [];
-        $('console-box').innerHTML = '';
+        renderLogs(allLogs, { filter: logFilter, search: logSearch });
       }
     } catch {
       // Ignore malformed SSE payload.
@@ -832,10 +945,15 @@ function connectSse() {
   };
 
   es.onerror = () => {
-    sseEl.classList.remove('connected');
-    sseText.textContent = 'Reconectando...';
+    sseStatus = 'reconnecting';
+    updateSseLabel();
   };
 }
+
+// Initial bootstrap
+applyTranslations(document);
+updateTopbarHeader();
+updateSseLabel();
 
 api('/admin/api/state')
   .then((s) => {

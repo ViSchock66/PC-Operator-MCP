@@ -1,12 +1,12 @@
 {
-  "name": "PC Operator MCP",
+  "name": "PC-Operator-MCP",
   "short_name": "PC Operator",
-  "description": "Servidor MCP local y puente seguro para modelos LLM y Antigravity Operator",
+  "description": "Local MCP server and secure bridge for LLM clients, workspaces, and Antigravity Operator",
   "start_url": "/admin",
   "scope": "/admin",
   "display": "standalone",
-  "background_color": "#08090c",
-  "theme_color": "#0d0f14",
+  "background_color": "#090b0f",
+  "theme_color": "#0e1117",
   "icons": [
     {
       "src": "/admin/assets/icon-32.png",
