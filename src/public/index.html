@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0d0f14" />
+  <title>PC Operator MCP — Panel de Control</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/admin/assets/icon-192.png" />
+  <link rel="manifest" href="/admin/assets/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/admin/assets/styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <div class="brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <rect x="1.5" y="1.5" width="29" height="29" rx="7.5" fill="#0d1017" stroke="#2a3244" stroke-width="1.3"/>
+              <path d="M8.5 13.5V9.8C8.5 9.1 9.1 8.5 9.8 8.5H22.2C22.9 8.5 23.5 9.1 23.5 9.8V13.5" stroke="#f4f4f5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8.5 18.5V22.2C8.5 22.9 9.1 23.5 9.8 23.5H22.2C22.9 23.5 23.5 22.9 23.5 22.2V18.5" stroke="#64748b" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="10.8" y1="16" x2="21.2" y2="16" stroke="#94a3b8" stroke-width="1.7" stroke-linecap="round"/>
+              <circle cx="8.5" cy="16" r="2.3" fill="#181c24" stroke="#f4f4f5" stroke-width="1.7"/>
+              <circle cx="23.5" cy="16" r="2.3" fill="#181c24" stroke="#f4f4f5" stroke-width="1.7"/>
+              <circle cx="16" cy="16" r="3.4" fill="#0d1017"/>
+              <circle cx="16" cy="16" r="2.6" fill="#22c55e"/>
+            </svg>
+          </div>
+          <div class="brand-meta">
+            <div class="brand-title-row">
+              <span class="brand-name">PC Operator MCP</span>
+              <span class="version-chip">v0.4</span>
+            </div>
+            <span class="brand-sub">Multi-LLM · Local Daemon</span>
+          </div>
+        </div>
+
+        <div class="node-status-card">
+          <div class="node-status-head">
+            <span id="status-pill" class="pill">
+              <span class="status-dot"></span>
+              <span id="status-pill-text">CARGANDO</span>
+            </span>
+            <span id="pid-badge" class="pid-badge">PID --</span>
+          </div>
+          <div class="node-status-grid">
+            <div class="mini-stat">
+              <span class="mini-stat-label">Uptime</span>
+              <span id="uptime-text" class="mini-stat-val mono">00:00:00</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-label">Modo Red</span>
+              <span id="sidebar-mode-val" class="mini-stat-val">--</span>
+            </div>
+          </div>
+          <button id="sidebar-copy-mcp" type="button" class="quick-ip-btn" title="Copiar URL MCP para conectar en cualquier LLM">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="sidebar-mcp-url" class="mono truncate">--</span>
+          </button>
+        </div>
+
+        <div class="rail-section-label">Operación</div>
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-tab="dashboard" data-title="Resumen" data-subtitle="Telemetría en vivo, acceso rápido y consola del daemon">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            </span>
+            <span class="tab-label">Resumen</span>
+            <span class="tab-shortcut">1</span>
+          </button>
+
+          <button class="tab" data-tab="auth" data-title="Conectores &amp; Auth" data-subtitle="Proveedores OAuth (Gemini/Claude/ChatGPT), API Keys y credenciales locales">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            </span>
+            <span class="tab-label">Conectores &amp; Auth</span>
+            <span class="tab-shortcut">2</span>
+          </button>
+
+          <button class="tab" data-tab="network" data-title="Túnel &amp; Red" data-subtitle="Exposición HTTPS fija (Tailscale / Cloudflare) y diagnóstico local">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </span>
+            <span class="tab-label">Túnel &amp; Red</span>
+            <span class="tab-shortcut">3</span>
+          </button>
+
+          <button class="tab" data-tab="workspaces" data-title="Workspaces &amp; Permisos" data-subtitle="Carpetas autorizadas, aislamiento por sesión y límites del harness">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="tab-label">Workspaces &amp; Permisos</span>
+            <span id="nav-badge-ws" class="nav-badge">1</span>
+          </button>
+
+          <button class="tab" data-tab="operator" data-title="Operator &amp; Demonios" data-subtitle="Puente Antigravity Operator, Control Total y consolas persistentes">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            </span>
+            <span class="tab-label">Operator &amp; Demonios</span>
+            <span id="nav-badge-daemons" class="nav-badge">0</span>
+          </button>
+
+          <button class="tab" data-tab="handoff" data-title="Handoff entre Modelos" data-subtitle="Rastro silencioso por proyecto y relevos bajo solicitud (cero contaminación)">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            </span>
+            <span class="tab-label">Handoff</span>
+            <span id="nav-badge-handoffs" class="nav-badge">0</span>
+          </button>
+        </nav>
+
+        <div class="rail-section-label">Soporte</div>
+        <nav class="tabs" role="tablist">
+          <button class="tab" data-tab="guide" data-title="Guía de Conexión" data-subtitle="Checklist y pasos para vincular Gemini, Claude, ChatGPT y scripts">
+            <span class="tab-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </span>
+            <span class="tab-label">Guía de Conexión</span>
+            <span id="nav-badge-ready" class="nav-badge">--</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <div id="sse-indicator" class="sse-indicator">
+          <span class="sse-dot"></span>
+          <span id="sse-text">Conectando...</span>
+        </div>
+        <button id="btn-shutdown-daemon" type="button" class="btn btn-ghost btn-sm btn-full" title="Cierra el servidor MCP, el túnel y el icono de la bandeja">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+          <span>Apagar Daemon &amp; Salir</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1 id="topbar-title" class="topbar-title">Resumen</h1>
+          <p id="topbar-sub" class="topbar-sub">Telemetría en vivo, acceso rápido y consola del daemon</p>
+        </div>
+        <div class="topbar-actions">
+          <button id="btn-tunnel-start" type="button" class="btn btn-primary">Iniciar Túnel</button>
+          <button id="btn-tunnel-restart" type="button" class="btn">Reiniciar Túnel</button>
+          <button id="btn-tunnel-stop" type="button" class="btn btn-danger">Detener</button>
+        </div>
+      </header>
+
+      <div class="page-body">
+        <div id="banner-area"></div>
+
+        <!-- TAB 1: RESUMEN -->
+        <section id="tab-dashboard" class="tab-panel active">
+          <div class="kpi-strip">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Túnel &amp; Red</span>
+                <span id="kpi-tunnel-badge" class="nav-badge">--</span>
+              </div>
+              <div id="kpi-tunnel-val" class="kpi-value">--</div>
+              <div id="kpi-tunnel-sub" class="kpi-sub mono">--</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Sesiones LLM</span>
+                <span id="kpi-sessions-badge" class="nav-badge">0 OAuth</span>
+              </div>
+              <div id="kpi-sessions-val" class="kpi-value">0</div>
+              <div id="kpi-sessions-sub" class="kpi-sub">Esperando conexión LLM</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Operator Bridge</span>
+                <span id="kpi-op-badge" class="nav-badge">--</span>
+              </div>
+              <div id="kpi-op-val" class="kpi-value">--</div>
+              <div id="kpi-op-sub" class="kpi-sub">--</div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <span class="kpi-label">Demonios &amp; Control</span>
+                <span id="kpi-fc-badge" class="nav-badge">Control OFF</span>
+              </div>
+              <div id="kpi-fc-val" class="kpi-value">0 activos</div>
+              <div id="kpi-fc-sub" class="kpi-sub">Consolas persistentes bloqueadas</div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">Conexión Rápida</h2>
+                  <p class="card-desc">Endpoints y credenciales para conectar Gemini, Claude o ChatGPT.</p>
+                </div>
+                <span id="oauth-sessions-badge" class="nav-badge">0 sesiones</span>
+              </div>
+
+              <div class="kv-list">
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">URL pública MCP (Claude / ChatGPT / General)</span>
+                    <span id="dash-mcp-url" class="kv-val kv-val-accent">--</span>
+                  </div>
+                  <button type="button" class="btn btn-sm" data-copy-target="dash-mcp-url">Copiar</button>
+                </div>
+
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">URL exclusiva Gemini (conector limpio)</span>
+                    <span id="dash-gemini-mcp-url" class="kv-val kv-val-accent">--</span>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-primary" data-copy-target="dash-gemini-mcp-url">Copiar</button>
+                </div>
+
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">PIN de autorización OAuth</span>
+                    <span id="dash-pin" class="kv-val" data-masked="true">••••••••</span>
+                  </div>
+                  <div class="btn-row">
+                    <button id="btn-toggle-pin" type="button" class="btn btn-sm btn-ghost">Ver</button>
+                    <button id="btn-copy-pin" type="button" class="btn btn-sm">Copiar</button>
+                  </div>
+                </div>
+
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">OAuth Estático — ID de cliente</span>
+                    <span id="dash-client-id" class="kv-val">--</span>
+                  </div>
+                  <button type="button" class="btn btn-sm" data-copy-target="dash-client-id">Copiar</button>
+                </div>
+
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">OAuth Estático — Secreto de cliente</span>
+                    <span id="dash-client-secret" class="kv-val" data-masked="true">••••••••••••••••</span>
+                  </div>
+                  <div class="btn-row">
+                    <button id="btn-toggle-secret" type="button" class="btn btn-sm btn-ghost">Ver</button>
+                    <button id="btn-copy-secret" type="button" class="btn btn-sm">Copiar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">Estado de Red &amp; Operator</h2>
+                  <p class="card-desc">Diagnóstico en vivo de Tailscale, puente Operator y workspace activo.</p>
+                </div>
+                <div class="btn-row">
+                  <button id="btn-dash-test-op" type="button" class="btn btn-sm">Conectar Operator</button>
+                  <button id="btn-detect-tailscale" type="button" class="btn btn-sm">Detectar Red</button>
+                </div>
+              </div>
+
+              <div class="kv-list">
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">Tailscale en este PC</span>
+                    <span id="ts-status-text" class="kv-val">Comprobando...</span>
+                  </div>
+                  <span id="ts-funnel-badge" class="nav-badge">--</span>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">Dominio Tailscale detectado</span>
+                    <span id="ts-dns-text" class="kv-val">--</span>
+                  </div>
+                  <button id="btn-use-ts-url" type="button" class="btn btn-sm btn-primary hidden">Usar URL fija</button>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">Antigravity Operator (Chrome / Firefox / Desktop)</span>
+                    <span id="dash-op-status" class="kv-val">--</span>
+                  </div>
+                  <span id="dash-op-badge" class="nav-badge">--</span>
+                </div>
+                <div class="kv-row">
+                  <div class="kv-meta">
+                    <span class="kv-label">Endpoint Local &amp; Workspace Activo</span>
+                    <span id="dash-local-url" class="kv-val">--</span>
+                    <div id="dash-active-ws" class="kv-val" style="color:var(--text-soft);margin-top:3px">--</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Consola en Vivo</h2>
+                <p class="card-desc">Eventos del servidor, túnel, Operator y herramientas MCP en tiempo real.</p>
+              </div>
+              <div class="console-toolbar">
+                <div class="filter-pills">
+                  <button type="button" class="filter-pill active" data-log-filter="all">Todas</button>
+                  <button type="button" class="filter-pill" data-log-filter="mcp">MCP</button>
+                  <button type="button" class="filter-pill" data-log-filter="tunnel">Túnel</button>
+                  <button type="button" class="filter-pill" data-log-filter="operator">Operator</button>
+                  <button type="button" class="filter-pill" data-log-filter="warn">Alertas</button>
+                </div>
+                <input id="input-log-search" class="input" type="search" placeholder="Filtrar logs..." style="width:165px;padding:5px 9px" />
+                <button id="btn-clear-logs" type="button" class="btn btn-sm btn-ghost">Limpiar</button>
+              </div>
+            </div>
+            <div id="console-box" class="console-box"></div>
+          </div>
+        </section>
+
+        <!-- TAB 2: CONECTORES & AUTH -->
+        <section id="tab-auth" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Proveedores OAuth &amp; Callbacks</h2>
+                <p class="card-desc">Orígenes preautorizados para OAuth 2.1, además de Dynamic Client Registration (DCR) y loopback.</p>
+              </div>
+            </div>
+
+            <div id="builtin-providers-list" class="btn-row"></div>
+
+            <form id="form-oauth-origins" class="field" style="gap:10px">
+              <label class="field-label" for="input-oauth-origins">Orígenes o Redirect URIs personalizados adicionales (uno por línea)</label>
+              <textarea id="input-oauth-origins" class="input mono" rows="3" placeholder="https://example.com/oauth/callback"></textarea>
+              <span class="field-hint">Útil si conectas un cliente web propio con OAuth 2.1 usando el ID/Secreto estático.</span>
+              <div>
+                <button type="submit" class="btn btn-primary">Guardar Orígenes OAuth</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Bearer API Keys (Conectores sin OAuth)</h2>
+                <p class="card-desc">Tokens directos <code>Authorization: Bearer gp_key_...</code> para clientes custom o scripts.</p>
+              </div>
+            </div>
+
+            <div id="new-apikey-banner" class="alert alert-warn hidden">
+              <div style="min-width:0;flex:1">
+                <strong>Nueva API Key generada (<span id="new-apikey-name"></span>):</strong>
+                <div id="new-apikey-token" class="mono" style="margin-top:4px;word-break:break-all;font-size:12px"></div>
+                <div class="field-hint">Cópiala ahora; por seguridad después solo se mostrará enmascarada.</div>
+              </div>
+              <button id="btn-copy-new-apikey" type="button" class="btn btn-sm btn-primary">Copiar Token</button>
+            </div>
+
+            <form id="form-create-apikey" class="btn-row">
+              <input id="input-apikey-name" class="input" type="text" placeholder="Nombre del cliente (ej: Claude Custom, Script Empleo, LibreChat)" style="flex:1;min-width:220px" />
+              <button type="submit" class="btn btn-primary">Generar API Key</button>
+            </form>
+
+            <div id="apikeys-list" class="ws-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Parámetros del Servidor &amp; Credenciales OAuth</h2>
+                <p class="card-desc">Configura puerto local, PIN de autorización y credenciales OAuth estáticas.</p>
+              </div>
+            </div>
+
+            <form id="form-server" class="form-grid">
+              <div class="field">
+                <label class="field-label" for="input-port">Puerto HTTP local</label>
+                <input id="input-port" class="input mono" type="number" min="1024" max="65535" />
+                <span class="field-hint">Por defecto <code>3333</code>. Si lo cambias, reinicia el daemon para escucharlo.</span>
+              </div>
+
+              <div class="field">
+                <label class="field-label" for="input-pin">PIN de autorización (4-64 caracteres)</label>
+                <div class="btn-row" style="flex-wrap:nowrap">
+                  <input id="input-pin" class="input mono" type="text" minlength="4" maxlength="64" />
+                  <button type="button" id="btn-regen-pin" class="btn btn-sm">Regenerar</button>
+                </div>
+              </div>
+
+              <div class="field field-full">
+                <div class="btn-row">
+                  <button type="submit" class="btn btn-primary">Guardar Puerto y PIN</button>
+                  <button type="button" id="btn-regen-client" class="btn btn-warn">Regenerar ID/Secreto OAuth</button>
+                  <button type="button" id="btn-revoke-sessions" class="btn btn-danger">Revocar Sesiones OAuth (<span id="param-sessions-count">0</span>)</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- TAB 3: TÚNEL & RED -->
+        <section id="tab-network" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Proveedor de Túnel &amp; Dominio Fijo</h2>
+                <p class="card-desc">Configura cómo se expone el MCP hacia internet para que la URL nunca cambie.</p>
+              </div>
+              <button id="btn-detect-in-domain" type="button" class="btn btn-sm">Autodetectar Tailscale</button>
+            </div>
+
+            <form id="form-tunnel" class="field" style="gap:14px">
+              <div class="mode-grid" id="mode-grid">
+                <label class="mode-option" data-mode="tailscale">
+                  <input type="radio" name="mode" value="tailscale" />
+                  <span class="mode-title">Tailscale Funnel <span class="nav-badge badge-ok">Recomendado</span></span>
+                  <span class="mode-sub">URL fija HTTPS (*.ts.net) usando tu cuenta Tailscale sin configurar DNS.</span>
+                </label>
+
+                <label class="mode-option" data-mode="cloudflare-named">
+                  <input type="radio" name="mode" value="cloudflare-named" />
+                  <span class="mode-title">Cloudflare Tunnel Fijo</span>
+                  <span class="mode-sub">Usa tu propio dominio (.com/.cl) con un Tunnel Token de Cloudflare.</span>
+                </label>
+
+                <label class="mode-option" data-mode="cloudflare-quick">
+                  <input type="radio" name="mode" value="cloudflare-quick" />
+                  <span class="mode-title">Cloudflare Quick Tunnel</span>
+                  <span class="mode-sub">URL temporal *.trycloudflare.com (cambia en cada reinicio).</span>
+                </label>
+
+                <label class="mode-option" data-mode="local">
+                  <input type="radio" name="mode" value="local" />
+                  <span class="mode-title">Solo Local (127.0.0.1)</span>
+                  <span class="mode-sub">Sin túnel público; útil si usas tu propio reverse proxy externo.</span>
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <div class="field field-full" id="field-public-url">
+                  <label class="field-label" for="input-public-url">URL Pública Fija (origen HTTPS para OAuth y conectores)</label>
+                  <input id="input-public-url" class="input mono" type="text" placeholder="https://mi-pc.tailnet.ts.net" />
+                  <span class="field-hint">Sin <code>/mcp</code> al final; el servidor agrega <code>/mcp</code> automáticamente.</span>
+                </div>
+
+                <div class="field hidden" id="field-custom-domain">
+                  <label class="field-label" for="input-custom-domain">Dominio propio (Cloudflare)</label>
+                  <input id="input-custom-domain" class="input mono" type="text" placeholder="https://mcp.example.com" />
+                </div>
+
+                <div class="field hidden" id="field-cf-token">
+                  <label class="field-label" for="input-cf-token">Cloudflare Tunnel Token</label>
+                  <input id="input-cf-token" class="input mono" type="password" placeholder="Pega tu token aquí (dejar igual para conservar el actual)" />
+                </div>
+              </div>
+
+              <label class="toggle-row">
+                <div class="toggle-info">
+                  <span class="toggle-title">Iniciar túnel automáticamente al levantar el daemon</span>
+                  <span class="toggle-desc">Al ejecutar Abrir-Panel.bat o npm run tunnel, levanta el túnel configurado sin clics extra.</span>
+                </div>
+                <input id="chk-autostart" class="switch" type="checkbox" />
+              </label>
+
+              <div class="btn-row">
+                <button type="submit" class="btn btn-primary" data-apply="true">Guardar y Aplicar Túnel</button>
+                <button type="button" id="btn-save-tunnel-only" class="btn">Solo Guardar</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Entorno de Red Detectado</h2>
+                <p class="card-desc">Binarios e interfaces disponibles en este PC para exponer el endpoint HTTPS.</p>
+              </div>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Tailscale CLI &amp; DNS</span>
+                  <span id="net-ts-status" class="kv-val">--</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">IP Tailnet &amp; Funnel</span>
+                  <span id="net-ts-ip" class="kv-val">--</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Cloudflared</span>
+                  <span id="net-cf-status" class="kv-val">--</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: WORKSPACES & PERMISOS -->
+        <section id="tab-workspaces" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Gestor de Workspaces Autorizados</h2>
+                <p class="card-desc">Define el workspace global por defecto y las carpetas autorizadas. Cada modelo conectado en paralelo puede cambiar solo el suyo sin pisar a los demás.</p>
+              </div>
+              <div class="btn-row">
+                <button id="btn-ws-reset-sessions" type="button" class="btn btn-sm btn-ghost" title="Hace que todos los modelos paralelos vuelvan al workspace global activo">Sincronizar Sesiones</button>
+                <button id="btn-pick-folder" type="button" class="btn btn-primary">Elegir carpeta (Explorador)...</button>
+              </div>
+            </div>
+
+            <input id="input-ws-filter" class="input" type="search" placeholder="Filtrar workspaces por nombre, ruta o rama Git..." />
+            <div id="ws-list" class="ws-list"></div>
+
+            <form id="form-add-ws" class="btn-row" style="margin-top:4px">
+              <input id="input-ws-path" class="input mono" type="text" placeholder="Ej: C:\Users\<usuario>\Documents\mi-proyecto" style="flex:1;min-width:240px" />
+              <button type="submit" class="btn">Agregar y Activar</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Permisos &amp; Límites del Harness</h2>
+                <p class="card-desc">Se aplican en vivo sin reiniciar ni desconectar tus sesiones activas.</p>
+              </div>
+            </div>
+
+            <form id="form-permissions" class="field" style="gap:12px">
+              <div class="toggle-list">
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Permitir escritura y edición de archivos</span>
+                    <span class="toggle-desc">Habilita <code>write_file</code>, <code>edit_file</code> y <code>move_path</code>.</span>
+                  </div>
+                  <input id="perm-write" class="switch" type="checkbox" />
+                </label>
+
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Permitir borrado dentro del workspace</span>
+                    <span class="toggle-desc">Habilita <code>delete_path</code> (siempre bloquea borrar la raíz).</span>
+                  </div>
+                  <input id="perm-delete" class="switch" type="checkbox" />
+                </label>
+
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Permitir ejecutar comandos PowerShell</span>
+                    <span class="toggle-desc">Habilita <code>run_command</code> dentro del workspace activo.</span>
+                  </div>
+                  <input id="perm-commands" class="switch" type="checkbox" />
+                </label>
+
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Proteger archivos sensibles</span>
+                    <span class="toggle-desc">Bloquea lectura/escritura en <code>.env</code>, <code>.pem</code>, <code>.key</code> y <code>.git/hooks</code>.</span>
+                  </div>
+                  <input id="perm-sensitive" class="switch" type="checkbox" />
+                </label>
+              </div>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field-label" for="perm-timeout">Timeout por comando (ms)</label>
+                  <input id="perm-timeout" class="input mono" type="number" min="1000" max="300000" step="1000" />
+                  <span class="field-hint">Entre 1.000 ms y 300.000 ms (por defecto 30.000 ms).</span>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="perm-max-read">Límite de lectura por archivo (bytes)</label>
+                  <input id="perm-max-read" class="input mono" type="number" min="1024" max="10485760" step="1024" />
+                  <span class="field-hint">Por defecto 131.072 bytes (128 KB).</span>
+                </div>
+              </div>
+
+              <div>
+                <button type="submit" class="btn btn-primary">Guardar Permisos y Límites</button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- TAB 5: OPERATOR & DEMONIOS -->
+        <section id="tab-operator" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Antigravity Operator Bridge (Chrome, Firefox &amp; Desktop)</h2>
+                <p class="card-desc">Federa las 17 herramientas de <code>antigravity-operator</code> sin depender de Antigravity IDE ni colisionar con sus sesiones.</p>
+              </div>
+              <span id="op-tab-badge" class="nav-badge">--</span>
+            </div>
+
+            <form id="form-operator" class="field" style="gap:12px">
+              <label class="toggle-row">
+                <div class="toggle-info">
+                  <span class="toggle-title">Habilitar herramientas de Antigravity Operator en /mcp</span>
+                  <span class="toggle-desc">Expone control silencioso de Chrome/Firefox (con tus sesiones reales), Playwright headless y escritorio Windows (DXGI / UIA).</span>
+                </div>
+                <input id="op-enabled" class="switch" type="checkbox" />
+              </label>
+
+              <div class="field">
+                <label class="field-label" for="op-server-path">Ruta de <code>server/index.mjs</code> del plugin</label>
+                <input id="op-server-path" class="input mono" type="text" placeholder="C:\Users\<usuario>\.gemini\config\plugins\antigravity-operator\server\index.mjs" />
+                <span id="op-detail-hint" class="field-hint">Cada cliente conectado recibe su propio <code>SESSION_ID</code> aislado sobre <code>\\.\pipe\antigravity-operator-broker</code> para no interrumpirse en paralelo.</span>
+              </div>
+
+              <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Guardar y Conectar</button>
+                <button type="button" id="btn-op-restart" class="btn">Reiniciar Todos los Bridges</button>
+                <button type="button" id="btn-op-stop" class="btn btn-ghost">Poner en Espera</button>
+              </div>
+            </form>
+
+            <div style="margin-top:6px;padding-top:14px;border-top:1px solid var(--border)">
+              <div class="field-label" style="margin-bottom:8px">Sesiones Paralelas Aisladas (Workspace + Operator)</div>
+              <div id="parallel-sessions-list" class="ws-list"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Modo Control Total &amp; Gestor de Demonios / Consolas</h2>
+                <p class="card-desc">Switch bajo demanda para habilitar consolas persistentes (<code>process_start</code>, <code>process_read</code>, <code>process_send</code>, <code>process_stop</code>) con auto-apagado seguro.</p>
+              </div>
+              <span id="fc-status-badge" class="nav-badge">APAGADO</span>
+            </div>
+
+            <form id="form-full-control" class="field" style="gap:10px">
+              <label class="toggle-row" id="fc-master-row">
+                <div class="toggle-info">
+                  <span class="toggle-title">Activar Modo Control Total / Consolas Persistentes</span>
+                  <span class="toggle-desc">Permite a los modelos levantar servidores, builds largos y consolas interactivas sin el corte de 120s.</span>
+                </div>
+                <input id="fc-enabled" class="switch switch-warn" type="checkbox" />
+              </label>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field-label" for="fc-ttl">Auto-apagado automático (seguridad)</label>
+                  <select id="fc-ttl" class="select">
+                    <option value="30">30 minutos</option>
+                    <option value="60" selected>60 minutos (Recomendado)</option>
+                    <option value="120">2 horas</option>
+                    <option value="240">4 horas</option>
+                    <option value="0">Sin límite (apagar manualmente)</option>
+                  </select>
+                </div>
+                <div class="field" style="justify-content:flex-end">
+                  <span id="fc-countdown-hint" class="field-hint">Apagado: las tools <code>process_*</code> quedan bloqueadas hasta que actives este switch.</span>
+                </div>
+              </div>
+
+              <div class="toggle-list">
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Permitir carpetas fuera del workspace (<code>cwd</code> libre)</span>
+                    <span class="toggle-desc">Solo mientras Control Total esté encendido: permite pasar rutas absolutas de Windows en <code>run_command</code> y <code>process_start</code>.</span>
+                  </div>
+                  <input id="fc-free-cwd" class="switch switch-warn" type="checkbox" />
+                </label>
+
+                <label class="toggle-row">
+                  <div class="toggle-info">
+                    <span class="toggle-title">Detener demonios automáticamente al apagar o expirar</span>
+                    <span class="toggle-desc">Mata todo el árbol de procesos hijos con <code>taskkill /T /F</code> cuando termina el temporizador o apagas el switch.</span>
+                  </div>
+                  <input id="fc-stop-on-off" class="switch" type="checkbox" checked />
+                </label>
+              </div>
+
+              <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Guardar / Aplicar Switch</button>
+                <button type="button" id="btn-daemons-stop-all" class="btn btn-danger">Detener Todos los Demonios</button>
+                <button type="button" id="btn-daemons-clear" class="btn btn-ghost">Limpiar Terminados</button>
+              </div>
+            </form>
+
+            <div style="margin-top:6px;padding-top:12px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:10px">
+              <div class="card-head">
+                <div>
+                  <span class="field-label">Demonios y Consolas Activas</span>
+                  <span id="daemons-count-badge" class="nav-badge" style="margin-left:6px">0 activos</span>
+                </div>
+              </div>
+
+              <form id="form-launch-daemon" class="btn-row">
+                <input id="input-daemon-name" class="input" type="text" placeholder="Nombre (opcional, ej: Dev Server)" style="width:190px" />
+                <input id="input-daemon-cmd" class="input mono" type="text" placeholder="Comando PowerShell en workspace activo (ej: npm run dev)" style="flex:1;min-width:220px" />
+                <button type="submit" class="btn">Lanzar Demonio</button>
+              </form>
+
+              <div id="daemons-list" class="ws-list"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 6: HANDOFF ENTRE MODELOS -->
+        <section id="tab-handoff" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Actividad Reciente por Modelo y Proyecto</h2>
+                <p class="card-desc">Cada cambio de archivo o comando queda guardado silenciosamente en disco (con secretos redactados). <strong>Nunca se inyecta en chats nuevos</strong>: solo se carga si pides <code>handoff_resume</code> o pegas el prompt.</p>
+              </div>
+              <span id="handoff-badge" class="nav-badge">0 activos</span>
+            </div>
+
+            <div class="btn-row" style="margin-bottom:10px">
+              <input id="input-handoff-note" class="input" type="text" placeholder="Nota rápida opcional al congelar (ej: faltaba probar el refresh en auth.js)..." style="flex:1;min-width:240px" />
+              <button type="button" id="btn-handoff-clear-resumed" class="btn btn-sm btn-ghost">Limpiar retomados</button>
+            </div>
+
+            <div id="handoff-trails-list" class="ws-list"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Checkpoints de Handoff Guardados</h2>
+                <p class="card-desc">Puntos de relevo creados con <code>handoff_save</code> o congelados desde arriba. Pega el prompt en otro chat para retomar exacto donde quedaste.</p>
+              </div>
+              <span id="handoff-cp-badge" class="nav-badge">0 checkpoints</span>
+            </div>
+
+            <div id="handoff-checkpoints-list" class="ws-list"></div>
+          </div>
+        </section>
+
+        <!-- TAB 6: GUÍA DE CONEXIÓN -->
+        <section id="tab-guide" class="tab-panel">
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Checklist de Preparación</h2>
+                <p class="card-desc">Verifica que tu URL fija, el servidor y el Operator estén listos antes de vincular un modelo.</p>
+              </div>
+            </div>
+            <div id="guide-checklist" class="checklist"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Conectar en Claude Web (<code>claude.ai</code>)</h2>
+                <p class="card-desc">Usa Claude con control de archivos, Chrome/Firefox y escritorio Windows.</p>
+              </div>
+              <button type="button" class="btn btn-sm" data-copy-target="guide-mcp-url">Copiar URL MCP</button>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Paso 1 — Abre Conectores en claude.ai</span>
+                  <span class="kv-val">Ajustes → Conectores → Añadir conector personalizado</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Paso 2 — Pega la URL fija MCP</span>
+                  <span id="guide-mcp-url" class="kv-val kv-val-accent">--</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Paso 3 — Autenticación</span>
+                  <span class="kv-val">Deja OAuth automático (DCR) o pega el ID/Secreto estático en Ajustes avanzados, y autoriza con tu PIN local.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <div>
+                <h2 class="card-title">Conectar en Google Gemini &amp; ChatGPT</h2>
+                <p class="card-desc">Ambos proveedores usan OAuth 2.1 con la misma URL fija y tu PIN local.</p>
+              </div>
+              <button id="btn-copy-oauth-bundle" type="button" class="btn btn-sm">Copiar ID + Secreto</button>
+            </div>
+            <div class="kv-list">
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">URL exclusiva para Google Gemini (Aplicaciones conectadas)</span>
+                  <span id="guide-gemini-mcp-url" class="kv-val kv-val-accent">--</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" data-copy-target="guide-gemini-mcp-url">Copiar</button>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Google Gemini</span>
+                  <span class="kv-val">Borra el conector viejo en Ajustes → Aplicaciones conectadas y agrega la URL <code>/mcp/gemini</code> (si Google vuelve a cachear permisos, rota a <code>/mcp/gemini/2</code>).</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">ChatGPT</span>
+                  <span class="kv-val">Ajustes → Aplicaciones y conectores → Crear conector MCP → pega la URL fija <code>/mcp</code> (modo OAuth).</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Credenciales OAuth Estáticas (si el cliente las pide)</span>
+                  <span id="guide-oauth-summary" class="kv-val">--</span>
+                </div>
+              </div>
+              <div class="kv-row">
+                <div class="kv-meta">
+                  <span class="kv-label">Clientes personalizados / Scripts / Agentes locales</span>
+                  <span class="kv-val">Crea una API Key en <strong>Conectores &amp; Auth</strong> y envíala como header <code>Authorization: Bearer gp_key_...</code>.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="toast-stack" class="toast-stack"></div>
+  <script type="module" src="/admin/assets/app.js"></script>
+</body>
+</html>

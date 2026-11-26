@@ -1,0 +1,18 @@
+{
+  "name": "gemini-pc-mcp",
+  "version": "0.1.0",
+  "description": "Servidor MCP Streamable HTTP + OAuth 2.1 para conectar gemini.google.com a un workspace local en Windows",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "tunnel": "node src/launcher.js",
+    "panel": "powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File panel/abrir-panel.ps1",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "express": "^5.2.1",
+    "zod": "^4.3.6"
+  }
+}

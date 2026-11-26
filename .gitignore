@@ -1,0 +1,13 @@
+# Dependencias y estado privado en ejecución (PIN, OAuth, API keys, handoffs)
+node_modules/
+data/
+.backups/
+playground/
+
+# Respaldos manuales y logs
+*.bak-*
+*.log
+*.tmp
+
+# Binario nativo de bandeja (se recompila automáticamente desde panel/tray/TrayDaemon.cs)
+panel/tray/*.exe
