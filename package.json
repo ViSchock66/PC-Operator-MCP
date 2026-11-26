@@ -1,7 +1,7 @@
 {
   "name": "pc-operator-mcp",
   "version": "0.5.0",
-  "description": "Local Windows Streamable HTTP MCP server with OAuth 2.1, workspace sandboxing, cross-model handoff, and optional Antigravity Operator federation",
+  "description": "Local Windows Streamable HTTP MCP server with OAuth 2.1, workspace-scoped file tools, full-user PowerShell commands, cross-model handoff, bundled skills, and optional Antigravity Operator federation",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

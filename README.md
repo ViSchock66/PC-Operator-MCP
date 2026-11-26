@@ -1,113 +1,187 @@
 # PC-Operator-MCP
 
-Servidor **MCP (Streamable HTTP + OAuth 2.1 + API Keys)** para Windows 11 que conecta **Google Gemini**, **Claude (`claude.ai`)**, **ChatGPT (`chatgpt.com`)** y clientes/scripts locales a tus workspaces en disco, con lectura multimodal (texto, imágenes, PDF texto/visual, DOCX/XLSX/PPTX), skills `SKILL.md`, consolas persistentes, federación de **Antigravity Operator** (Chrome/Firefox/Escritorio) y **Handoff entre modelos 100% bajo solicitud**.
+> **Language:** **English** · [Español](docs/README.es.md) · [Technical Architecture (ES)](docs/ARQUITECTURA.md)
 
-Incluye **URL HTTPS fija** (Tailscale Funnel o Cloudflare Tunnel), **Panel Gráfico local (`/admin`)** e **ícono nativo en la bandeja del sistema**.
+**Streamable HTTP MCP server (OAuth 2.1 + Bearer API Keys)** for Windows 11 that connects **Google Gemini**, **Claude (`claude.ai`)**, **ChatGPT (`chatgpt.com`)**, and local IDE/CLI agents (**Claude Code**, **Cursor**, **VS Code Copilot**) to your local workspaces — with multimodal file reading (text, images, PDF text/visual, DOCX/XLSX/PPTX), bundled `SKILL.md` playbooks, persistent PowerShell consoles, **pull-only cross-model handoff**, and optional federation with **[Antigravity Operator](https://github.com/ViSchock66/antigravity-operator)** for Chrome, Firefox, and Windows desktop control.
 
-> Para detalles técnicos de módulos, endpoints HTTP, persistencia y diseño interno, consulta [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+Includes a **fixed HTTPS tunnel** (Tailscale Funnel or Cloudflare Tunnel), a **local bilingual Control Panel (`/admin`, EN/ES)**, and a **native Windows system tray companion**.
 
 ---
 
-## Inicio rápido
+## Quick Start
 
-1. Haz doble clic en **`Abrir-Panel.bat`** (o ejecuta `npm run panel` / `.\start.ps1 -Gui`).
-   - Inicia el daemon oculto (`node src/launcher.js`), levanta el túnel configurado, compila/inicia el ícono de bandeja (`pc-operator-tray.exe`) y abre `http://127.0.0.1:3333/admin`.
-   - Puedes cerrar la ventana del panel y reabrirla con `Abrir-Panel.bat` sin apagar el servidor ni el túnel.
-   - Para reiniciar el proceso Node tras cambios de código: pulsa **Apagar Daemon & Salir** (barra lateral izquierda de `/admin`) y vuelve a abrir `Abrir-Panel.bat`.
-2. Ingresa tu **PIN local** (guardado en `data/config.json` o visible en consola si inicias con `npm run tunnel`).
+1. Install dependencies:
+   ```powershell
+   npm install
+   ```
+2. Double-click **`Abrir-Panel.bat`** (or run `npm run panel` / `.\start.ps1 -Gui`).
+   - Starts the hidden background daemon (`node src/launcher.js`), brings up your configured HTTPS tunnel, compiles/launches the Windows tray icon (`pc-operator-tray.exe`), and opens `http://127.0.0.1:3333/admin`.
+   - Closing the panel window leaves the server and tunnel running; reopen anytime via `Abrir-Panel.bat`.
+   - To restart Node after code changes, click **Shut Down Daemon** in the `/admin` sidebar and run `Abrir-Panel.bat` again.
+3. Sign in with your **local PIN** (stored in `data/config.json` or printed in the console when launching with `npm run tunnel`).
 
-### Scripts y flags CLI
+### CLI Scripts & Flags
 
-| Comando | Descripción |
+| Command | Description |
 |---|---|
-| `npm run panel` / `Abrir-Panel.bat` | Arranca el daemon oculto (si no corre) y abre `/admin` en modo app. |
-| `npm run tunnel` | Inicia el servidor + túnel + bandeja con salida en consola (`node src/launcher.js`). |
-| `npm start` | Inicia solo el servidor HTTP/MCP local sin túnel ni bandeja (`node src/index.js`). |
-| `.\start.ps1 [-Workspace <ruta>] [-Pick] [-Gui]` | Wrapper PowerShell hacia `src/launcher.js`. |
-| `npm test` | Ejecuta toda la suite de pruebas (`node --test test/*.test.js`). |
+| `npm run panel` / `Abrir-Panel.bat` | Starts the hidden daemon (if not running) and opens `/admin` in app mode. |
+| `npm run tunnel` | Starts server + tunnel + tray with live console output (`node src/launcher.js`). |
+| `npm start` | Starts the local HTTP/MCP server only, without tunnel or tray (`node src/index.js`). |
+| `.\start.ps1 [-Workspace <path>] [-Pick] [-Gui]` | PowerShell wrapper for `src/launcher.js`. |
+| `npm test` | Runs the full test suite (`node --test test/*.test.js`). |
 
-Flags soportados por `src/index.js` y `src/launcher.js`: `--port <n>`, `--workspace <ruta>`, `--pick` / `--pick-workspace`, `--gui`, `--no-tunnel`, `--no-tray`.
-
----
-
-## Conectar modelos (OAuth 2.1 y API Keys)
-
-El servidor soporta **sesiones paralelas aisladas**: puedes tener Gemini, Claude y ChatGPT conectados al mismo tiempo; cada cliente tiene su propio `activeWorkspace` de sesión y su propio puente `OperatorBridge` aislado.
-
-- **Endpoint general (Claude, ChatGPT, clientes MCP estándar):**
-  `https://<tu-url-fija>/mcp`
-- **Endpoint dedicado Gemini Web (recomendado para `gemini.google.com`):**
-  `https://<tu-url-fija>/mcp/gemini` *(y slots paralelos `/mcp/gemini/<slot>`)*
-  > **Por qué existe `/mcp/gemini`:** aplica automáticamente anotaciones de compatibilidad para Gemini Web (`readOnlyHint: true`, desactivable con `GEMINI_READONLY_ANNOTATIONS=0`) para evitar el bug donde Gemini Web revierte *"Permitir siempre"* tras cada llamada, además de exponer metadata RFC 9728 por ruta. **Es solo una anotación de compatibilidad y no restringe herramientas ni activa modo solo lectura.**
-- **Proveedores OAuth incluidos:** Google Gemini (prod/sandbox/test), Claude (`claude.ai`), ChatGPT (`chatgpt.com` / `chat.openai.com`), orígenes personalizados configurables desde `/admin`, registro dinámico (**DCR**) y cliente estático (**ID + Secreto**).
-- **API Keys (`gp_key_*`):** generables y revocables desde `/admin` → **Conectores & Auth** para clientes o scripts con `Authorization: Bearer <token>`.
+Supported flags (`src/index.js` and `src/launcher.js`): `--port <n>`, `--workspace <path>`, `--pick` / `--pick-workspace`, `--gui`, `--no-tunnel`, `--no-tray`.
 
 ---
 
-## Panel Gráfico Local (`/admin`)
+## Connecting Clients
 
-Accesible **solo desde `127.0.0.1`** con PIN (rechaza cualquier acceso vía proxy/túnel con `403`). Organizado en 7 pestañas (atajos de teclado `1`–`7`):
+### 1. Web LLM Connectors (OAuth 2.1 + PKCE)
 
-1. **Resumen (`1`):** KPIs en vivo (túnel, sesiones LLM, Operator, demonios), URLs `/mcp` y `/mcp/gemini`, PIN/OAuth y consola de logs SSE con filtros.
-2. **Conectores & Auth (`2`):** Proveedores OAuth integrados, orígenes redirect personalizados, generación/revocación de API Keys `gp_key_*` y revocación global de sesiones OAuth.
-3. **Túnel & Red (`3`):** Selector de modo (**Tailscale Funnel**, **Cloudflare Tunnel Fijo**, **Cloudflare Quick Tunnel** o **Solo Local**), detección automática de red, puerto y PIN.
-4. **Workspaces & Permisos (`4`):** Selector con Explorador de Windows, filtro de carpetas autorizadas, botón **Sincronizar Sesiones** y permisos (`allowWrite`, `allowDelete`, `allowCommands`, `protectSensitiveFiles`, `commandTimeoutMs`, `maxReadBytes`).
-5. **Operator & Demonios (`5`):** Activación de **Antigravity Operator**, lista de sesiones paralelas aisladas, switch **Modo Control Total** con auto-apagado por TTL y gestor de consolas persistentes.
-6. **Handoff (`6`):** Actividad reciente auto-rastreada por `(modelo, proyecto)` con tiempos relativos, detalle desplegable de comandos/acciones, nota rápida opcional al congelar y botón de 1 clic para copiar el prompt de relevo.
-7. **Guía de Conexión (`7`):** Checklist en vivo de preparación y pasos exactos para vincular Claude, Gemini y ChatGPT.
+The server supports **parallel isolated sessions**: Gemini, Claude, and ChatGPT can run simultaneously with independent per-session `activeWorkspace` state and isolated `OperatorBridge` instances.
+
+- **General endpoint (Claude, ChatGPT, standard MCP clients):**
+  `https://<your-fixed-url>/mcp`
+- **Dedicated Gemini Web endpoint (recommended for `gemini.google.com`):**
+  `https://<your-fixed-url>/mcp/gemini` *(and parallel slots `/mcp/gemini/<slot>`)*
+  > **Why `/mcp/gemini` exists:** applies Gemini Web UI compatibility annotations (`readOnlyHint: true`, toggleable via `GEMINI_READONLY_ANNOTATIONS=0`) to work around the Gemini Web bug where *"Always allow"* resets after each tool call, and serves route-specific RFC 9728 metadata. **This is a UI compatibility annotation only — it does not restrict tools or enable a read-only mode.**
+- **Built-in OAuth 2.1 providers:** Google Gemini (prod/sandbox/test), Claude (`claude.ai`), ChatGPT (`chatgpt.com` / `chat.openai.com`), custom origins via `/admin`, Dynamic Client Registration (**DCR**), and static OAuth client (**ID + Secret**).
+
+### 2. IDE & CLI Clients (Bearer API Keys `gp_key_*`)
+
+Generate a revocable API key in `/admin` → **Connections → Auth & API Keys**, then use your local (`http://127.0.0.1:3333/mcp`) or public HTTPS endpoint:
+
+#### Claude Code (CLI or `.mcp.json`)
+```bash
+# CLI (OAuth 2.1 or Bearer token)
+claude mcp add --transport http pc-operator "http://127.0.0.1:3333/mcp"
+```
+```json
+{
+  "mcpServers": {
+    "pc-operator": {
+      "type": "http",
+      "url": "http://127.0.0.1:3333/mcp",
+      "headers": {
+        "Authorization": "Bearer gp_key_YOUR_TOKEN"
+      }
+    }
+  }
+}
+```
+
+#### Cursor (`mcp.json`)
+```json
+{
+  "mcpServers": {
+    "pc-operator": {
+      "url": "http://127.0.0.1:3333/mcp",
+      "headers": {
+        "Authorization": "Bearer gp_key_YOUR_TOKEN"
+      }
+    }
+  }
+}
+```
+
+#### VS Code Copilot (`.vscode/mcp.json`)
+```json
+{
+  "servers": {
+    "pc-operator": {
+      "type": "http",
+      "url": "http://127.0.0.1:3333/mcp",
+      "headers": {
+        "Authorization": "Bearer gp_key_YOUR_TOKEN"
+      }
+    }
+  }
+}
+```
 
 ---
 
-## Inventario de Herramientas MCP
+## Local Control Panel (`/admin`)
 
-### 1. Workspace, Código, Documentos y Skills (15 tools)
-- **Contexto y navegación:** `workspace_info`, `list_workspaces`, `select_workspace` *(solo cambia tu sesión)*, `list_dir`, `find_files`, `search_text`.
-- **Lectura multimodal y por lotes:**
-  - `read_file`: código/texto paginado por líneas, imágenes inline (`png`, `jpg`, `webp`, `gif`), Office (`docx`, `xlsx`, `pptx`) y **PDF** (extracción de texto o `renderPages: true` a JPEG inline sin abrir Chrome).
-  - `read_files`: lee hasta 10 archivos en una sola llamada.
-- **Edición y ejecución:** `write_file`, `edit_file`, `move_path`, `delete_path`, `run_command` (PowerShell oculto con permisos completos del usuario de Windows; arranca en el workspace activo pero puede acceder fuera de él, con timeout configurable), `git_harness` (`status`, `diff`, `log`, `branches`).
-- **Skills integradas:** `use_skill` lista y carga playbooks `SKILL.md` (del workspace activo, guía integrada `workspace-operator-guide`, skills de Operator y skills globales del usuario).
+Accessible **exclusively from `127.0.0.1`** with PIN login (rejects tunneled/proxied requests with `403`). Features live **EN / ES language switching** and **5 modular views** (keyboard shortcuts `1`–`5`):
 
-### 2. Handoff entre Modelos — 100% Bajo Solicitud (3 tools)
-Pensado para uso diario si un chat se queda sin cuota a mitad de camino, **sin ensuciar chats normales**:
-- El servidor registra silenciosamente en `data/handoffs.json` cada acción real de trabajo (`write_file`, `edit_file`, `read_file`, `run_command`, etc.), **particionado por `(sessionKey, workspace)`** y con **redacción automática de secretos** (`Bearer`, `gp_key_`, `sk-`, `password=`, `token=`).
-- `workspace_info` **nunca** inyecta pistas de otras sesiones ni checkpoints.
-- `handoff_save`: guarda un checkpoint explícito (resumen, objetivo, completado, pendiente, archivos clave) solo cuando el usuario lo pide.
-- `handoff_resume`: recupera un checkpoint o rastro automático (archivos modificados, `git diff --stat`, comandos y procesos vivos) y alinea el workspace. Acepta `id`, `trailKey`, `workspace` o `fromClient`; si hay ambigüedad entre varios proyectos recientes, devuelve `needsSelection: true` sin tocar el workspace.
-- `handoff_list`: lista checkpoints guardados y rastros recientes por `(modelo, proyecto)` con su antigüedad en minutos.
+1. **Overview (`1`):** Live hero status, KPIs (tunnel, LLM sessions, Operator bridge, daemons), Quick Connect URLs/PIN/static OAuth disclosure, network health, and filterable live SSE console.
+2. **Workspaces (`2`):** Authorized folder whitelist, Windows folder picker, **Sync Sessions** across parallel models, and live permissions (`allowWrite`, `allowDelete`, `allowCommands`, `protectSensitiveFiles`, `commandTimeoutMs`, `maxReadBytes`).
+3. **Connections (`3`):** Organized into 3 sub-tabs:
+   - **Tunnel & Domain:** Tailscale Funnel (recommended), Cloudflare Named Tunnel, Cloudflare Quick Tunnel, or Local Only + binary auto-detection.
+   - **Auth & API Keys:** `gp_key_*` API key manager, OAuth 2.1 providers & custom origins, local port, PIN, and session revocation.
+   - **Setup Guide:** Live readiness checklist and copy-ready snippets for Claude Code, Cursor, VS Code Copilot, HTTP/curl, and web OAuth connectors.
+4. **Runtime (`4`):** Antigravity Operator federation toggle & per-session bridge monitor, **Full Control Mode** switch with TTL auto-expiry, and persistent console/daemon manager.
+5. **Handoff (`5`):** Auto-tracked recent trails per `(client, workspace)`, expandable command/action history, optional quick note when freezing checkpoints, and 1-click handoff prompt copy.
 
-### 3. Demonios y Consolas Persistentes (5 tools — *Modo Control Total*)
-Requieren activar el switch **Modo Control Total** en `/admin` (con temporizador TTL de auto-apagado y opción de `cwd` libre):
-- `process_list`, `process_start`, `process_read` (por `tailLines` o `fromOffset`), `process_send` (stdin interactivo) y `process_stop` (detiene todo el árbol con `taskkill /T /F`).
+---
 
-### 4. Antigravity Operator Federado (17 tools opcionales)
-Si el plugin `antigravity-operator` está habilitado en `/admin`, el servidor federa con aislamiento por sesión (`AG_OPERATOR_SESSION_KEY`):
-- **Chrome / Firefox (`operator_chrome_*`, `operator_firefox_*`):** modo silencioso (`playwright` headless o `extension` en segundo plano) y entrega de pestañas al usuario (`for_user: true`).
-- **Escritorio Windows (`operator_desktop_*`):** capturas, listado de ventanas, árbol UI Automation sin foco (`ui_tree`, `ui_action`), control visual/3D (`act`) y overlay.
+## MCP Tool Inventory (23 Native + 17 Optional Federated)
 
-### Resources y Prompts MCP
+### Native Tools — Included Out of the Box (23 tools)
+
+#### 1. Workspace, Code, Multimodal Docs & Skills (15 tools)
+- **Context & navigation:** `workspace_info`, `list_workspaces`, `select_workspace` *(session-scoped)*, `list_dir`, `find_files`, `search_text`.
+- **Multimodal & batch reading:**
+  - `read_file`: line-paginated text/code, inline images (`png`, `jpg`, `webp`, `gif`), Office (`docx`, `xlsx`, `pptx`), and **PDF** (text extraction or `renderPages: true` rendered inline as JPEG without opening a browser).
+  - `read_files`: batch-read up to 10 files in a single call.
+- **Editing & execution:** `write_file`, `edit_file`, `move_path`, `delete_path`, `run_command` *(hidden PowerShell running with your Windows user's full permissions; starts in the active workspace `cwd`, can access paths outside it, configurable timeout)*, `git_harness` (`status`, `diff`, `log`, `branches`).
+- **Skills (`use_skill`):** lists and loads `SKILL.md` playbooks in priority order: **active workspace** (`skills/`, `.agents/skills/`) → **bundled repo `skills/`** → **built-in guide** → **Antigravity Operator skills** → **user global `~/.gemini/config/skills`**.
+
+#### 2. Cross-Model Handoff — 100% Pull-Only (3 tools)
+Built to seamlessly resume work when a chat runs out of quota without polluting unrelated chats:
+- Silently records real work actions in `data/handoffs.json`, partitioned by `(sessionKey, workspace)` with automatic secret redaction (`Bearer`, `gp_key_`, `sk-`, `ghp_`, `AIza*`, `password=`, `token=`).
+- `workspace_info` **never** injects hints from other sessions or checkpoints.
+- `handoff_save`, `handoff_resume` *(with safe `needsSelection: true` disambiguation across recent projects)*, and `handoff_list`.
+
+#### 3. Persistent Consoles & Daemons — *Full Control Mode* (5 tools)
+Require enabling **Full Control Mode** in `/admin` (with TTL auto-expiry and optional unrestricted `cwd`):
+- `process_list`, `process_start`, `process_read` (`tailLines` or `fromOffset`), `process_send` (interactive stdin), and `process_stop` (full process tree termination via `taskkill /T /F`).
+
+### Optional Federated Tools — Antigravity Operator (17 tools)
+
+Connect **[Antigravity Operator](https://github.com/ViSchock66/antigravity-operator)** (standalone MIT repository) in `/admin` → **Runtime** to federate browser and Windows desktop automation with per-session isolation (`AG_OPERATOR_SESSION_KEY`):
+- **Chrome / Firefox (`operator_chrome_*`, `operator_firefox_*`):** silent mode (`playwright` headless or background `extension`) and user handoff (`for_user: true`).
+- **Windows Desktop (`operator_desktop_*`):** screenshots, window enumeration, focus-free UI Automation (`ui_tree`, `ui_action`), visual/DirectX actions (`act`), and cursor overlay.
+
+### Bundled Skills (`skills/`)
+
+This repository ships 5 ready-to-use `SKILL.md` playbooks exposed automatically via `use_skill`:
+- `workspace-operator-guide` — master operational playbook for all native tools, multimodal reading, and handoff.
+- `windows-operator` — safe Windows 11 local workspace, PowerShell, clipboard, and browser coordination guide.
+- `chrome-operator` *(requires [Antigravity Operator](https://github.com/ViSchock66/antigravity-operator))* — silent Chrome automation and clean user handoff.
+- `firefox-operator` *(requires [Antigravity Operator](https://github.com/ViSchock66/antigravity-operator))* — silent Firefox WebExtension automation and handoff.
+- `desktop-operator` *(requires [Antigravity Operator](https://github.com/ViSchock66/antigravity-operator))* — Windows UIA and DirectX/visual automation playbook.
+
+### Resources & Prompts
 - **Resource:** `mcp://workspace-operator/guide` (`guia_uso_mcp`).
-- **Prompts:** `como_usar_este_mcp` y `retomar_handoff`.
+- **Prompts:** `como_usar_este_mcp` and `retomar_handoff`.
 
 ---
 
-## Variables de entorno
+## Environment Variables
 
-| Variable | Defecto | Uso |
+| Variable | Default | Purpose |
 |---|---|---|
-| `MCP_PORT` | `3333` | Puerto HTTP local (se persiste en `data/config.json`). |
-| `MCP_PIN` | Generado | Sobrescribe el PIN de autorización local. |
-| `MCP_PUBLIC_URL` | `""` | Origen público HTTPS (`https://...`) usado en metadata OAuth/RFC 9728. |
-| `CLOUDFLARE_TUNNEL_TOKEN` | `""` | Activa modo `cloudflare-named` con token de túnel fijo. |
-| `MCP_ACCESS_TOKEN_TTL_SEC` | `2592000` (30d) | Duración de los `access_token` OAuth. |
-| `GEMINI_READONLY_ANNOTATIONS` | `1` (activo) | En `0` desactiva las anotaciones de compatibilidad `readOnlyHint: true` para clientes Gemini (solo metadato de UI; **no restringe** herramientas ni activa modo solo lectura). |
+| `MCP_PORT` | `3333` | Local HTTP port (persisted in `data/config.json`). |
+| `MCP_PIN` | Generated | Overrides the local authorization PIN. |
+| `MCP_PUBLIC_URL` | `""` | Fixed public HTTPS origin (`https://...`) for OAuth / RFC 9728 metadata. |
+| `CLOUDFLARE_TUNNEL_TOKEN` | `""` | Enables `cloudflare-named` mode with a fixed tunnel token. |
+| `MCP_ACCESS_TOKEN_TTL_SEC` | `2592000` (30d) | OAuth `access_token` lifetime in seconds. |
+| `GEMINI_READONLY_ANNOTATIONS` | `1` (enabled) | Set to `0` to disable `readOnlyHint: true` UI compatibility annotations on `/mcp/gemini*` (metadata only — **does not restrict** tools). |
 
 ---
 
-## Seguridad
+## Security Model
 
-- `/mcp`, `/mcp/gemini` y `/mcp/gemini/:slot` exigen Bearer token válido con scope `mcp:tools` (OAuth 2.1 + PKCE o API Key) y validan orígenes CORS permitidos.
-- **Alcance de las herramientas de archivos (`read_file`, `read_files`, `write_file`, `edit_file`, `move_path`, `delete_path`, `list_dir`, `find_files`, `search_text`):** restringidas al workspace activo; bloquean `..`, symlinks externos, el directorio interno del servidor (`src/`, `data/`, `panel/`, etc.), la carpeta de `antigravity-operator`, `.git/config`, `.git/hooks/*` y archivos sensibles (`.env`, `.pem`, `.key`, `id_rsa`, etc.) cuando `protectSensitiveFiles` está activo.
-- **Consola (`run_command` y `process_*`):** por diseño, ejecutan PowerShell con los **permisos completos del usuario actual de Windows** para operar el PC y sus herramientas/sesiones. Arrancan en el workspace activo como directorio inicial (`cwd`), pero **no están enjauladas** al workspace ni limitadas por `protectSensitiveFiles`. Si deseas impedir ejecución de consola, desactiva `allowCommands` en `/admin`.
-- `/admin`, `/admin/api/*` y `/internal/tray/*` solo responden a loopback local (`127.0.0.1`), rechazan cabeceras de proxy/túnel (`403`) y exigen autenticación por cookie firmada o `trayToken`.
-- Los comandos y errores guardados en `data/handoffs.json` pasan por redacción de secretos antes de escribirse a disco.
+- `/mcp`, `/mcp/gemini`, and `/mcp/gemini/:slot` require a valid Bearer token with scope `mcp:tools` (OAuth 2.1 + PKCE or `gp_key_*` API key) and enforce a **CORS origin allowlist** (built-in providers, loopback, configured public URL, and user-approved redirect origins).
+- **File tool scope (`read_file`, `read_files`, `write_file`, `edit_file`, `move_path`, `delete_path`, `list_dir`, `find_files`, `search_text`):** strictly bounded to the active workspace; blocks `..`, external symlinks, internal server directories (`src/`, `data/`, `panel/`, etc.), the `antigravity-operator` directory, `.git/config`, `.git/hooks/*`, and sensitive files (`.env`, `.pem`, `.key`, `id_rsa`, etc.) when `protectSensitiveFiles` is enabled.
+- **Shell execution (`run_command` and `process_*`):** by design, runs PowerShell with your **current Windows user's full permissions** so agents can operate your local PC and authenticated CLIs. Commands start in the active workspace (`cwd`), but are **not sandboxed** to the workspace or restricted by `protectSensitiveFiles`. Disable `allowCommands` in `/admin` to block shell execution.
+- `/admin`, `/admin/api/*`, `/admin/assets/*`, and `/internal/tray/*` only respond on local loopback (`127.0.0.1`), reject proxy/tunnel headers (`403`), block direct `/admin/assets/index.html` and unknown assets (`404`), and require HMAC session cookies or `X-Tray-Token`.
+- Commands and errors saved in `data/handoffs.json` are scrubbed for secrets before writing to disk.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
