@@ -46,9 +46,9 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
     })();
   </script>
   <title>${escapeHtml(msg.title)}</title>
-  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg?v=3" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png?v=3" />
-  <link rel="manifest" href="/admin/assets/manifest.webmanifest?v=3" />
+  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg?v=4" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png?v=4" />
+  <link rel="manifest" href="/admin/assets/manifest.webmanifest?v=4" />
   <style>
     :root {
       color-scheme: light dark;
@@ -220,7 +220,7 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
   <main class="card">
     <div class="top">
       <div class="brand">
-        <img src="/admin/assets/favicon.svg?v=3" alt="" width="24" height="24" />
+        <img src="/admin/assets/favicon.svg?v=4" alt="" width="24" height="24" />
         <span class="brand-title">PC-Operator-MCP</span>
       </div>
       <div class="controls">

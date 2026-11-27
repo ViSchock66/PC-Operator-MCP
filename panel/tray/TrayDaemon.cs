@@ -427,9 +427,9 @@ namespace PcOperatorTray
         private void UpdateTrayIcon(string visualState)
         {
             int size = Math.Max(16, SystemInformation.SmallIconSize.Width);
-            Color dotColor = Color.FromArgb(108, 203, 95);
-            if (visualState == "amber") dotColor = Color.FromArgb(252, 225, 0);
-            else if (visualState == "red") dotColor = Color.FromArgb(255, 153, 164);
+            Color dotColor = Color.FromArgb(16, 185, 129);
+            if (visualState == "amber") dotColor = Color.FromArgb(217, 119, 6);
+            else if (visualState == "red") dotColor = Color.FromArgb(220, 38, 38);
 
             using (Bitmap bmp = RenderStatusBitmap(size, dotColor))
             {
@@ -456,18 +456,14 @@ namespace PcOperatorTray
 
                 float s = size / 32.0f;
                 using (GraphicsPath bg = RoundedRect(1.5f * s, 1.5f * s, 29.0f * s, 29.0f * s, 7.0f * s))
-                using (LinearGradientBrush bgBrush = new LinearGradientBrush(
-                    new PointF(4.0f * s, 2.0f * s),
-                    new PointF(28.0f * s, 30.0f * s),
-                    Color.FromArgb(255, 40, 153, 245),
-                    Color.FromArgb(255, 0, 95, 184)))
-                using (Pen borderPen = new Pen(Color.FromArgb(56, 255, 255, 255), Math.Max(1.0f, 1.0f * s)))
+                using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(24, 24, 27)))
+                using (Pen borderPen = new Pen(Color.FromArgb(63, 63, 70), Math.Max(1.0f, 1.3f * s)))
                 {
                     g.FillPath(bgBrush, bg);
                     g.DrawPath(borderPen, bg);
                 }
 
-                using (Pen topPen = new Pen(Color.FromArgb(255, 255, 255, 255), Math.Max(1.4f, 2.0f * s)))
+                using (Pen topPen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.4f, 1.9f * s)))
                 {
                     topPen.StartCap = LineCap.Round;
                     topPen.EndCap = LineCap.Round;
@@ -481,7 +477,7 @@ namespace PcOperatorTray
                     }
                 }
 
-                using (Pen botPen = new Pen(Color.FromArgb(255, 180, 228, 255), Math.Max(1.2f, 1.9f * s)))
+                using (Pen botPen = new Pen(Color.FromArgb(161, 161, 170), Math.Max(1.2f, 1.8f * s)))
                 {
                     botPen.StartCap = LineCap.Round;
                     botPen.EndCap = LineCap.Round;
@@ -495,16 +491,16 @@ namespace PcOperatorTray
                     }
                 }
 
-                using (Pen midPen = new Pen(Color.FromArgb(255, 255, 255, 255), Math.Max(1.3f, 2.0f * s)))
+                using (Pen midPen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.2f, 1.8f * s)))
                 {
                     midPen.StartCap = LineCap.Round;
                     midPen.EndCap = LineCap.Round;
-                    g.DrawLine(midPen, 12.0f * s, 16.0f * s, 20.0f * s, 16.0f * s);
+                    g.DrawLine(midPen, 11.8f * s, 16.0f * s, 20.2f * s, 16.0f * s);
                 }
 
-                using (SolidBrush nodeBrush = new SolidBrush(Color.FromArgb(255, 255, 255, 255)))
-                using (GraphicsPath leftNode = RoundedRect(7.5f * s, 13.8f * s, 4.4f * s, 4.4f * s, 1.4f * s))
-                using (GraphicsPath rightNode = RoundedRect(20.1f * s, 13.8f * s, 4.4f * s, 4.4f * s, 1.4f * s))
+                using (SolidBrush nodeBrush = new SolidBrush(Color.FromArgb(244, 244, 245)))
+                using (GraphicsPath leftNode = RoundedRect(7.5f * s, 14.0f * s, 4.0f * s, 4.0f * s, 1.2f * s))
+                using (GraphicsPath rightNode = RoundedRect(20.5f * s, 14.0f * s, 4.0f * s, 4.0f * s, 1.2f * s))
                 {
                     g.FillPath(nodeBrush, leftNode);
                     g.FillPath(nodeBrush, rightNode);
@@ -514,7 +510,7 @@ namespace PcOperatorTray
                 float dotRadius = Math.Max(3.2f, 5.0f * s);
                 float cx = size - dotRadius - 0.8f;
                 float cy = size - dotRadius - 0.8f;
-                using (SolidBrush ringBrush = new SolidBrush(Color.FromArgb(255, 32, 32, 32)))
+                using (SolidBrush ringBrush = new SolidBrush(Color.FromArgb(24, 24, 27)))
                 using (SolidBrush dotBrush = new SolidBrush(statusColor))
                 {
                     float cut = dotRadius + Math.Max(1.3f, 1.7f * s);

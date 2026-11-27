@@ -31,23 +31,16 @@ function New-BridgeChipBitmap {
 
   $s = $Size / 32.0
 
-  # Outer Fluent Blue squircle
+  # Outer graphite squircle
   $bgPath = New-Object System.Drawing.Drawing2D.GraphicsPath
   Add-RoundedRectPath -Path $bgPath -X (1.5 * $s) -Y (1.5 * $s) -W (29.0 * $s) -H (29.0 * $s) -R (7.0 * $s)
-  $gradStart = New-Object System.Drawing.PointF((4.0 * $s), (2.0 * $s))
-  $gradEnd = New-Object System.Drawing.PointF((28.0 * $s), (30.0 * $s))
-  $bgBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
-    $gradStart,
-    $gradEnd,
-    [System.Drawing.Color]::FromArgb(255, 40, 153, 245),
-    [System.Drawing.Color]::FromArgb(255, 0, 95, 184)
-  )
-  $borderPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(56, 255, 255, 255), [Math]::Max(1.0, 1.0 * $s))
+  $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 24, 24, 27))
+  $borderPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 63, 63, 70), [Math]::Max(1.0, 1.3 * $s))
   $g.FillPath($bgBrush, $bgPath)
   $g.DrawPath($borderPen, $bgPath)
 
   # Top bridge bracket
-  $topPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 255, 255, 255), [Math]::Max(1.4, 2.0 * $s))
+  $topPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 244, 244, 245), [Math]::Max(1.4, 1.9 * $s))
   $topPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
   $topPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
   $topPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
@@ -58,7 +51,7 @@ function New-BridgeChipBitmap {
   $g.DrawPath($topPen, $topPath)
 
   # Bottom bridge bracket
-  $botPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 180, 228, 255), [Math]::Max(1.2, 1.9 * $s))
+  $botPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 161, 161, 170), [Math]::Max(1.2, 1.8 * $s))
   $botPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
   $botPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
   $botPen.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
@@ -69,19 +62,19 @@ function New-BridgeChipBitmap {
   $g.DrawPath($botPen, $botPath)
 
   # Center link bar
-  $midPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 255, 255, 255), [Math]::Max(1.3, 2.0 * $s))
+  $midPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(255, 244, 244, 245), [Math]::Max(1.2, 1.8 * $s))
   $midPen.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
   $midPen.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
-  $g.DrawLine($midPen, 12.0 * $s, 16.0 * $s, 20.0 * $s, 16.0 * $s)
+  $g.DrawLine($midPen, 11.8 * $s, 16.0 * $s, 20.2 * $s, 16.0 * $s)
 
   # Left & right architectural square nodes
-  $nodeBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 255, 255, 255))
+  $nodeBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(255, 244, 244, 245))
   $leftNode = New-Object System.Drawing.Drawing2D.GraphicsPath
-  Add-RoundedRectPath -Path $leftNode -X (7.5 * $s) -Y (13.8 * $s) -W (4.4 * $s) -H (4.4 * $s) -R (1.4 * $s)
+  Add-RoundedRectPath -Path $leftNode -X (7.5 * $s) -Y (14.0 * $s) -W (4.0 * $s) -H (4.0 * $s) -R (1.2 * $s)
   $g.FillPath($nodeBrush, $leftNode)
 
   $rightNode = New-Object System.Drawing.Drawing2D.GraphicsPath
-  Add-RoundedRectPath -Path $rightNode -X (20.1 * $s) -Y (13.8 * $s) -W (4.4 * $s) -H (4.4 * $s) -R (1.4 * $s)
+  Add-RoundedRectPath -Path $rightNode -X (20.5 * $s) -Y (14.0 * $s) -W (4.0 * $s) -H (4.0 * $s) -R (1.2 * $s)
   $g.FillPath($nodeBrush, $rightNode)
 
   $rightNode.Dispose()

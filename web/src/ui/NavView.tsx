@@ -63,7 +63,7 @@ export function NavView({
       <div>
         <div class="mb-4 flex h-9 items-center gap-2.5 px-2 min-[1008px]:px-3">
           <img
-            src="/admin/assets/favicon.svg?v=3"
+            src="/admin/assets/favicon.svg?v=4"
             alt=""
             width={18}
             height={18}
