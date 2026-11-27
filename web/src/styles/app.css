@@ -4,24 +4,20 @@
   color-scheme: light dark;
   --ease-fluent: cubic-bezier(0, 0, 0, 1);
 
-  /* Fondo con un tinte muy leve del acento de Windows (fallback web); en WebView2 nativo cede paso a Mica real. */
+  /* Fondo con un tinte muy leve del acento de Windows (aprox. de Mica); sin acento del sistema queda neutro. */
   --bg-raw: light-dark(
     color-mix(in srgb, var(--sys-tint-light, #f3f3f3) 6%, #f3f3f3),
     color-mix(in srgb, var(--sys-tint-dark, #202020) 14%, #202020)
   );
-  --layer-raw: light-dark(rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.025));
-  --stroke-layer-raw: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.065));
   --card-raw: light-dark(#fbfbfb, color-mix(in srgb, #ffffff 5%, var(--bg-raw)));
   --card-hover-raw: light-dark(#f6f6f6, color-mix(in srgb, #ffffff 8%, var(--bg-raw)));
-  --card-specular-raw: light-dark(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.095));
-  --card-shadow-raw: light-dark(0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.22));
   --flyout-raw: light-dark(#ffffff, color-mix(in srgb, #ffffff 9%, var(--bg-raw)));
   --stroke-flyout-raw: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.1));
   --control-raw: light-dark(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.061));
   --control-hover-raw: light-dark(#ffffff, rgba(255, 255, 255, 0.084));
   --subtle-hover-raw: light-dark(rgba(0, 0, 0, 0.037), rgba(255, 255, 255, 0.061));
   --subtle-active-raw: light-dark(rgba(0, 0, 0, 0.025), rgba(255, 255, 255, 0.042));
-  --stroke-card-raw: light-dark(rgba(0, 0, 0, 0.075), rgba(255, 255, 255, 0.075));
+  --stroke-card-raw: light-dark(rgba(0, 0, 0, 0.075), rgba(0, 0, 0, 0.2));
   --stroke-control-raw: light-dark(rgba(0, 0, 0, 0.085), rgba(255, 255, 255, 0.093));
   --stroke-control-bottom-raw: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.093));
   --fg-raw: light-dark(#1b1b1b, #ffffff);
@@ -38,27 +34,11 @@
   --infobar-success-raw: light-dark(#dff6dd, #393d1b);
   --infobar-caution-raw: light-dark(#fff4ce, #433519);
   --infobar-critical-raw: light-dark(#fde7e9, #442726);
-  --scrollbar-thumb-raw: light-dark(rgba(0, 0, 0, 0.28), rgba(255, 255, 255, 0.28));
-  --scrollbar-track-raw: transparent;
+  --scrollbar-thumb-raw: light-dark(#8a8a8a, #6b6b6b);
+  --scrollbar-track-raw: light-dark(#eeeeee, #222222);
 
   accent-color: var(--accent-raw);
-  scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb-raw) var(--scrollbar-track-raw);
-}
-
-/* Host nativo WebView2: fondo transparente para dejar pasar Mica / Mica Alt / Acrylic real de Windows 11. */
-:root[data-native-host="webview2"] {
-  --layer-raw: light-dark(rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.036));
-  --stroke-layer-raw: light-dark(rgba(0, 0, 0, 0.065), rgba(255, 255, 255, 0.075));
-  --card-raw: light-dark(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.056));
-  --card-hover-raw: light-dark(rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.088));
-  --card-specular-raw: light-dark(rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.11));
-  --flyout-raw: light-dark(rgba(252, 252, 252, 0.95), rgba(44, 44, 48, 0.94));
-  --stroke-card-raw: light-dark(rgba(0, 0, 0, 0.07), rgba(255, 255, 255, 0.085));
-}
-
-:root[data-native-host="webview2"][data-backdrop="none"] {
-  --layer-raw: transparent;
 }
 
 :root[data-theme="light"] {
@@ -75,8 +55,6 @@
   --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
 
   --color-bg: var(--bg-raw);
-  --color-layer: var(--layer-raw);
-  --color-stroke-layer: var(--stroke-layer-raw);
   --color-card: var(--card-raw);
   --color-card-hover: var(--card-hover-raw);
   --color-control: var(--control-raw);
@@ -115,67 +93,9 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  html[data-native-host="webview2"]:not([data-backdrop="none"]),
-  html[data-native-host="webview2"]:not([data-backdrop="none"]) body {
-    background-color: transparent;
-  }
-
   :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--color-fg);
     outline-offset: 1px;
-  }
-}
-
-/* Regiones nativas de arrastre para barra de título integrada en WebView2 */
-.titlebar-drag {
-  app-region: drag;
-  -webkit-app-region: drag;
-}
-
-.titlebar-no-drag {
-  app-region: no-drag;
-  -webkit-app-region: no-drag;
-}
-
-/* Superficie de tarjeta Fluent con borde especular superior sutil y profundidad sobre Mica */
-.fluent-surface {
-  box-shadow: inset 0 1px 0 var(--card-specular-raw), var(--card-shadow-raw);
-}
-
-.fluent-hero {
-  background-image: radial-gradient(
-    ellipse 70% 130% at 0% 0%,
-    color-mix(in srgb, var(--accent-raw) 11%, transparent),
-    transparent 65%
-  );
-  box-shadow: inset 0 1px 0 var(--card-specular-raw), var(--card-shadow-raw);
-}
-
-.fluent-canvas-native {
-  background-color: var(--color-layer);
-  border-top: 1px solid var(--color-stroke-layer);
-  border-left: 1px solid var(--color-stroke-layer);
-  border-top-left-radius: 10px;
-  box-shadow: inset 0 1px 0 var(--card-specular-raw);
-}
-
-@supports not (scrollbar-color: auto) {
-  * {
-    scrollbar-width: auto;
-  }
-
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb-raw);
-    border-radius: 9999px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: var(--scrollbar-track-raw);
   }
 }
 

@@ -28,8 +28,6 @@ Referencia interna de los módulos, flujos, persistencia y endpoints del servido
 | `src/tunnel.js` | `TunnelManager`: ciclo de vida de Tailscale Funnel, Cloudflare Named/Quick o modo local, detección de binarios, logs en anillo y bus SSE. |
 | `src/admin.js` | Router estrictamente local (`127.0.0.1`, bloquea cabeceras `X-Forwarded-*`/`CF-*`) con bloqueo `404` de `/admin/assets/index.html` y assets inexistentes, autenticación por cookie HMAC, API JSON/SSE y router interno `/internal/tray`. |
 | `src/tray.js` | Compilación bajo demanda (`.NET csc.exe`) y ejecución de `panel/tray/pc-operator-tray.exe`. |
-| `src/panelHost.js` | Detección/compilación opcional (`.NET 8 SDK`) y lanzamiento del host nativo WebView2 (`panel/host/dist/pc-operator-panel.exe`) con fallback automático a navegador `--app=` en `/admin`. |
-| `panel/host/*` | Host nativo Windows 11 en C# (.NET 8 + `Microsoft.Web.WebView2` + Win32/DWM): Mica / Mica Alt / Acrylic real, barra de título integrada (`WM_NCCALCSIZE` + `IsNonClientRegionSupportEnabled`), instancia única (`Mutex` + `EventWaitHandle`), persistencia de geometría y perfil WebView2 dedicado. Compilación portable también vía GitHub Actions (`.github/workflows/build-panel-host.yml`). |
 | `src/public/*` | Salida generada y commiteada de Vite + Preact + TypeScript (`npm run build:web`). **No editar a mano**; el código fuente del frontend vive en `web/`. |
 | `web/` | Frontend del panel `/admin` (Vite + Preact + TypeScript + Tailwind v4 + Fluent UI): `src/pages/*`, `src/ui/*`, `src/api/*`, `src/state/*`, `src/i18n/*`. Flujo dev: iniciar sesión primero en `:3333/admin` y ejecutar `npm run dev:web` (`:5173/admin/assets/`). |
 

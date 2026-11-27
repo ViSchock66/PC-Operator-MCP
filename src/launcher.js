@@ -1,8 +1,26 @@
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import { ConfigManager } from './config.js';
 import { parseCliArgs, pickWorkspaceDialogSync, printStartupBanner } from './index.js';
-import { openPanelWindow } from './panelHost.js';
 import { createMcpAppServer } from './server.js';
 import { TrayCompanion } from './tray.js';
+
+function openPanelAppWindow(url) {
+  if (process.platform !== 'win32') return;
+  const candidates = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : '',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+  ].filter(Boolean);
+  const browser = candidates.find((p) => fs.existsSync(p)) || null;
+  if (browser) {
+    spawn(browser, [`--app=${url}`], { detached: true, stdio: 'ignore' }).unref();
+  } else {
+    spawn('cmd.exe', ['/c', 'start', '', url], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  }
+}
 
 const cli = parseCliArgs(process.argv.slice(2));
 let initialWorkspace = cli.workspace;
@@ -65,12 +83,7 @@ console.log(`Panel GUI: http://${instance.host}:${instance.port}/admin`);
 console.log('Mantén este daemon activo mientras trabajas con Gemini.\n');
 
 if (cli.openGui) {
-  openPanelWindow({
-    host: instance.host,
-    port: instance.port,
-    url: `http://${instance.host}:${instance.port}/admin`,
-    logger: (level, source, msg) => tunnelManager.log(level, source, msg)
-  });
+  openPanelAppWindow(`http://${instance.host}:${instance.port}/admin`);
 }
 
 process.on('SIGINT', shutdown);

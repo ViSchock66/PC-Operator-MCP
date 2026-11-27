@@ -2,14 +2,6 @@ import { useState } from 'preact/hooks';
 import { logoutAdmin, saveUiConfig, shutdownDaemon } from '../api/endpoints';
 import type { Language, ThemePreference } from '../api/types';
 import { languageSignal, normalizeLang, setLanguage, t } from '../i18n';
-import {
-  hostVersionSignal,
-  nativeHostSignal,
-  normalizeBackdrop,
-  setHostBackdrop,
-  windowBackdropSignal,
-  type WindowBackdrop,
-} from '../state/nativeHost';
 import { applyThemeVisual, normalizeThemePref, themeSignal } from '../state/prefs';
 import { applyStateUpdate, sseSignal, stateSignal } from '../state/store';
 import { Button } from '../ui/Button';
@@ -24,15 +16,7 @@ export function SettingsPage() {
   const theme = themeSignal.value;
   const lang = languageSignal.value;
   const sse = sseSignal.value;
-  const nativeHost = nativeHostSignal.value;
-  const backdrop = windowBackdropSignal.value;
-  const hostVersion = hostVersionSignal.value;
   const [confirmShutdown, setConfirmShutdown] = useState(false);
-
-  const handleBackdropChange = (next: string) => {
-    const normalized = normalizeBackdrop(next) as WindowBackdrop;
-    setHostBackdrop(normalized);
-  };
 
   const handleThemeChange = async (next: string) => {
     const normalized = normalizeThemePref(next) as ThemePreference;
@@ -95,25 +79,6 @@ export function SettingsPage() {
             />
           }
         />
-        {nativeHost ? (
-          <SettingsCard
-            title={t('settings.backdropTitle')}
-            description={t('settings.backdropDesc')}
-            action={
-              <Select
-                ariaLabel={t('settings.backdropTitle')}
-                value={backdrop}
-                onValueChange={handleBackdropChange}
-                options={[
-                  { value: 'mica', label: t('settings.backdropMica') },
-                  { value: 'mica-alt', label: t('settings.backdropMicaAlt') },
-                  { value: 'acrylic', label: t('settings.backdropAcrylic') },
-                  { value: 'none', label: t('settings.backdropSolid') },
-                ]}
-              />
-            }
-          />
-        ) : null}
         <SettingsCard
           title={t('settings.languageTitle')}
           description={t('settings.languageDesc')}
@@ -145,19 +110,6 @@ export function SettingsPage() {
           <SettingsCard
             title={t('settings.platformTitle')}
             action={<span class="font-mono text-[13px] text-fg-2">{s.server.platform}</span>}
-          />
-          <SettingsCard
-            title={t('settings.containerTitle')}
-            action={
-              <span class="font-mono text-[13px] text-fg-2">
-                {nativeHost
-                  ? t('settings.containerNative', {
-                      version: hostVersion || s.server.version,
-                      backdrop,
-                    })
-                  : t('settings.containerWeb')}
-              </span>
-            }
           />
           <SettingsCard
             title={t('settings.localEndpointTitle')}

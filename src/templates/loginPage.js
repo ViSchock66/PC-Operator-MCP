@@ -69,72 +69,20 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
     }
     :root[data-theme="light"] { color-scheme: light; }
     :root[data-theme="dark"] { color-scheme: dark; }
-    :root[data-native-host="webview2"]:not([data-backdrop="none"]) {
-      --bg: transparent;
-      --card: light-dark(rgba(255,255,255,0.78), rgba(255,255,255,0.065));
-      --stroke-card: light-dark(rgba(0,0,0,0.08), rgba(255,255,255,0.1));
-    }
     * { box-sizing: border-box; }
-    html, body {
-      height: 100%;
-    }
     body {
       margin: 0;
       min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
       background: var(--bg);
       color: var(--fg);
       font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
       font-size: 14px;
       line-height: 20px;
       -webkit-font-smoothing: antialiased;
-    }
-    .native-bar {
-      display: none;
-      height: 40px;
-      flex-shrink: 0;
-      align-items: center;
-      justify-content: space-between;
-      padding-left: 14px;
-      app-region: drag;
-      -webkit-app-region: drag;
-      user-select: none;
-    }
-    :root[data-native-host="webview2"] .native-bar { display: flex; }
-    .native-bar-title {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--fg-2);
-    }
-    .native-bar-actions {
-      display: flex;
-      height: 100%;
-      app-region: no-drag;
-      -webkit-app-region: no-drag;
-    }
-    .native-cap-btn {
-      width: 46px;
-      height: 100%;
-      border: 0;
-      background: transparent;
-      color: var(--fg-2);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: default;
-    }
-    .native-cap-btn:hover { background: rgba(128,128,128,0.14); color: var(--fg); }
-    .native-cap-btn.close:hover { background: #c42b1c; color: #fff; }
-    .stage {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
     }
     :where(a, button, input):focus-visible {
       outline: 2px solid var(--fg);
@@ -145,8 +93,7 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
       max-width: 420px;
       background: var(--card);
       border: 1px solid var(--stroke-card);
-      box-shadow: inset 0 1px 0 light-dark(rgba(255,255,255,0.85), rgba(255,255,255,0.1)), 0 8px 28px rgba(0,0,0,0.18);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 24px;
     }
     .top {
@@ -270,21 +217,6 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
   </style>
 </head>
 <body>
-  <header class="native-bar">
-    <span class="native-bar-title">
-      <img src="/admin/assets/favicon.svg?v=4" alt="" width="16" height="16" />
-      <span>PC-Operator-MCP</span>
-    </span>
-    <div class="native-bar-actions">
-      <button type="button" id="native-min-btn" class="native-cap-btn" aria-label="Minimize">
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect x="0" y="4.5" width="10" height="1" fill="currentColor"/></svg>
-      </button>
-      <button type="button" id="native-close-btn" class="native-cap-btn close" aria-label="Close">
-        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-  </header>
-  <div class="stage">
   <main class="card">
     <div class="top">
       <div class="brand">
@@ -310,23 +242,11 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
       <button class="submit-btn" type="submit">${escapeHtml(msg.submit)}</button>
     </form>
   </main>
-  </div>
   <script>
     (function () {
       var btn = document.getElementById('login-theme-btn');
       var iconWrap = document.getElementById('login-theme-icon');
       var mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-      var postHost = function (payload) {
-        try {
-          if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage) {
-            window.chrome.webview.postMessage(payload);
-          }
-        } catch (e) {}
-      };
-      var minBtn = document.getElementById('native-min-btn');
-      var closeBtn = document.getElementById('native-close-btn');
-      if (minBtn) minBtn.addEventListener('click', function () { postHost({ type: 'window:minimize' }); });
-      if (closeBtn) closeBtn.addEventListener('click', function () { postHost({ type: 'window:close' }); });
       var icons = {
         light: ${JSON.stringify(ICON_SUN)},
         dark: ${JSON.stringify(ICON_MOON)},
@@ -339,15 +259,8 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
       }
       function syncIcon(pref) {
         if (iconWrap) iconWrap.innerHTML = icons[pref] || icons.system;
-        var resolvedDark = pref === 'dark' || (pref === 'system' && Boolean(mql && mql.matches));
-        postHost({ type: 'theme:sync', theme: pref, isDark: resolvedDark });
       }
       syncIcon(getCurrent());
-      if (mql) {
-        mql.addEventListener('change', function () {
-          if (getCurrent() === 'system') syncIcon('system');
-        });
-      }
       if (btn) {
         btn.addEventListener('click', function () {
           var resolvedDark = getCurrent() === 'dark' || (getCurrent() === 'system' && mql && mql.matches);

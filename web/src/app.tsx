@@ -8,18 +8,14 @@ import { HomePage } from './pages/Home';
 import { ProcessesPage } from './pages/Processes';
 import { SettingsPage } from './pages/Settings';
 import { WorkspacesPage } from './pages/Workspaces';
-import { nativeHostSignal, windowBackdropSignal } from './state/nativeHost';
 import { routeSignal } from './state/router';
 import { stateSignal } from './state/store';
 import { NavView, type NavItemDef } from './ui/NavView';
-import { TitleBar } from './ui/TitleBar';
 import { ToastHost } from './ui/Toast';
 
 export function App() {
   const { page, subtab } = routeSignal.value;
   const s = stateSignal.value;
-  const nativeHost = nativeHostSignal.value;
-  const useMicaShell = nativeHost && windowBackdropSignal.value !== 'none';
   const derived = deriveTunnelStatus(s?.tunnel);
   const mainRef = useRef<HTMLElement>(null);
 
@@ -48,39 +44,20 @@ export function App() {
   };
 
   return (
-    <div
-      class={`flex h-screen flex-col overflow-hidden text-fg ${
-        useMicaShell ? 'bg-transparent' : 'bg-bg'
-      }`}
-    >
-      {nativeHost ? <TitleBar /> : null}
+    <div class="flex h-screen overflow-hidden bg-bg text-fg">
+      <NavView activePage={page} items={navItems} footerItem={footerItem} />
 
-      <div class="flex min-h-0 flex-1 overflow-hidden">
-        <NavView
-          activePage={page}
-          items={navItems}
-          footerItem={footerItem}
-          hideBrandHeader={nativeHost}
-          transparent={useMicaShell}
-        />
-
-        <main
-          ref={mainRef}
-          class={`min-w-0 flex-1 overflow-y-auto px-6 min-[1008px]:px-10 py-7 ${
-            useMicaShell ? 'fluent-canvas-native' : ''
-          }`}
-        >
-          <div class="mx-auto max-w-[1000px]">
-            {page === 'home' ? <HomePage /> : null}
-            {page === 'connection' ? <ConnectionPage /> : null}
-            {page === 'workspaces' ? <WorkspacesPage /> : null}
-            {page === 'processes' ? <ProcessesPage /> : null}
-            {page === 'handoff' ? <HandoffPage /> : null}
-            {page === 'activity' ? <ActivityPage /> : null}
-            {page === 'settings' ? <SettingsPage /> : null}
-          </div>
-        </main>
-      </div>
+      <main ref={mainRef} class="min-w-0 flex-1 overflow-y-auto px-6 min-[1008px]:px-10 py-8">
+        <div class="mx-auto max-w-[1000px]">
+          {page === 'home' ? <HomePage /> : null}
+          {page === 'connection' ? <ConnectionPage /> : null}
+          {page === 'workspaces' ? <WorkspacesPage /> : null}
+          {page === 'processes' ? <ProcessesPage /> : null}
+          {page === 'handoff' ? <HandoffPage /> : null}
+          {page === 'activity' ? <ActivityPage /> : null}
+          {page === 'settings' ? <SettingsPage /> : null}
+        </div>
+      </main>
 
       <ToastHost />
     </div>

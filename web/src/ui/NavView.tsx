@@ -13,14 +13,10 @@ export function NavView({
   activePage,
   items,
   footerItem,
-  hideBrandHeader = false,
-  transparent = false,
 }: {
   activePage: PageId;
   items: NavItemDef[];
   footerItem: NavItemDef;
-  hideBrandHeader?: boolean;
-  transparent?: boolean;
 }) {
   const renderLink = (item: NavItemDef) => {
     const active = activePage === item.id;
@@ -38,7 +34,7 @@ export function NavView({
         aria-current={active ? 'page' : undefined}
         aria-label={item.label}
         title={item.label}
-        class={`group relative flex h-9 items-center gap-3 rounded-md px-3 text-[14px] leading-5 no-underline transition-[background-color,color] duration-[83ms] ease-[var(--ease-fluent)] ${
+        class={`group relative flex h-9 items-center gap-3 rounded px-3 text-[14px] leading-5 no-underline transition-[background-color] duration-[83ms] ease-[var(--ease-fluent)] ${
           active
             ? 'bg-subtle-hover text-fg font-semibold'
             : 'text-fg-2 hover:bg-subtle-hover hover:text-fg'
@@ -63,33 +59,27 @@ export function NavView({
   };
 
   return (
-    <aside
-      class={`flex w-12 min-[1008px]:w-[256px] shrink-0 flex-col justify-between px-1.5 min-[1008px]:px-3 py-2.5 select-none ${
-        transparent ? 'bg-transparent' : 'bg-bg'
-      }`}
-    >
+    <aside class="flex w-12 min-[1008px]:w-[280px] shrink-0 flex-col justify-between bg-bg px-1.5 min-[1008px]:px-3 py-3 select-none">
       <div>
-        {!hideBrandHeader ? (
-          <div class="mb-4 flex h-9 items-center gap-2.5 px-2 min-[1008px]:px-3">
-            <img
-              src="/admin/assets/favicon.svg?v=4"
-              alt=""
-              width={18}
-              height={18}
-              class="h-[18px] w-[18px] shrink-0"
-            />
-            <span class="hidden min-[1008px]:inline text-[12px] leading-4 font-semibold text-fg-2 truncate">
-              {t('app.brand')}
-            </span>
-          </div>
-        ) : null}
+        <div class="mb-4 flex h-9 items-center gap-2.5 px-2 min-[1008px]:px-3">
+          <img
+            src="/admin/assets/favicon.svg?v=4"
+            alt=""
+            width={18}
+            height={18}
+            class="h-[18px] w-[18px] shrink-0"
+          />
+          <span class="hidden min-[1008px]:inline text-[12px] leading-4 font-semibold text-fg-2 truncate">
+            {t('app.brand')}
+          </span>
+        </div>
 
         <nav aria-label={t('app.navLabel')} class="flex flex-col gap-1">
           {items.map(renderLink)}
         </nav>
       </div>
 
-      <div class="pt-2 border-t border-stroke-layer/60">{renderLink(footerItem)}</div>
+      <div class="pt-2">{renderLink(footerItem)}</div>
     </aside>
   );
 }
