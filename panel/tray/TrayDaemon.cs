@@ -639,7 +639,8 @@ namespace PcOperatorTray
                 StringBuilder sb = new StringBuilder(len + 1);
                 NativeMethods.GetWindowText(hWnd, sb, sb.Capacity);
                 string title = sb.ToString();
-                if (title.IndexOf("PC Operator MCP", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                if (title.IndexOf("PC-Operator-MCP", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    title.IndexOf("PC Operator MCP", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     title.IndexOf("Panel Local Gemini MCP", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
                     match = hWnd;

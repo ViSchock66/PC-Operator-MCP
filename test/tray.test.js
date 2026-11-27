@@ -120,7 +120,9 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   assert.equal(loginPage.status, 200);
   assert.match(await loginPage.text(), /PC-Operator-MCP/);
 
-  // 6. Native Windows tray executable builds/exists
+  // 6. TrayDaemon FindPanelWindow matches current PC-Operator-MCP window title & builds/exists
+  const traySource = fs.readFileSync(new URL('../panel/tray/TrayDaemon.cs', import.meta.url), 'utf8');
+  assert.match(traySource, /PC-Operator-MCP/);
   if (process.platform === 'win32') {
     const exePath = ensureTrayExecutable();
     assert.ok(exePath && fs.existsSync(exePath), 'pc-operator-tray.exe should exist');
