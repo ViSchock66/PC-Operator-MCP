@@ -19,7 +19,7 @@ Referencia interna de los módulos, flujos, persistencia y endpoints del servido
 | `src/templates/loginPage.js` | Plantilla HTML del formulario de login con PIN para `/admin`. |
 | `src/templates/consentPage.js` | Plantilla HTML de consentimiento OAuth 2.1 (`/authorize`) con validación de PIN. |
 | `src/workspace.js` | `ClientSessionStore` (overrides de workspace por sesión en memoria) y `WorkspaceHarness` (tools de archivos acotadas al workspace + `protectSensitiveFiles`, lectura multimodal texto/imagen/Office/PDF + render visual Windows, `run_command` con permisos completos del usuario y filtrado de `env` vía `src/shellEnv.js`, `git_harness`). |
-| `src/shellEnv.js` | Higiene de variables de entorno (`buildSanitizedShellEnv`, `isSensitiveEnvName`, `normalizeEnvVarList`) para `run_command` y `process_start`: filtra `*_API_KEY`, `*_TOKEN`, `*SECRET*`, `*PASSWORD*`, `*_PRIVATE_KEY`, `MCP_PIN` y `CLOUDFLARE_TUNNEL_TOKEN` por defecto con soporte de `envAllowlist` / `envBlocklist` (sin alterar `OperatorBridge`). |
+| `src/shellEnv.js` | Higiene de variables de entorno (`buildSanitizedShellEnv`, `isSensitiveEnvName`, `normalizeEnvVarList`) para `run_command` y `process_start`: filtra `*_API_KEY`, `*_TOKEN`, `*SECRET*`, `*PASSWORD*`, `*_PRIVATE_KEY`, `MCP_PIN` y `CLOUDFLARE_TUNNEL_TOKEN` por defecto controlado por `filterSensitiveEnv` con soporte de `envAllowlist` / `envBlocklist` (sin alterar `OperatorBridge`). |
 | `src/mcpTools.js` | Construcción de `McpServer` por petición (`StreamableHTTPServerTransport` stateless), instrucciones operativas, anotaciones de compatibilidad para Gemini Web, envoltorio `registerTool` con `try/catch/finally` para trazas de handoff, Resource/Prompts y registro de todas las tools. |
 | `src/handoff.js` | `HandoffManager` (v2): rastros automáticos particionados por `(sessionKey, activeWorkspace)`, redacción de secretos (`redactSecrets`), checkpoints explícitos, desambiguación segura (`needsSelection`) y generación de prompts de relevo. |
 | `src/processManager.js` | Gestor de demonios/consolas persistentes bajo el switch **Modo Control Total** (TTL con auto-expiración, límite de 10 procesos activos / 256 KB buffer y `taskkill /T /F` en Windows). |
@@ -65,7 +65,7 @@ Todos los archivos JSON se escriben de forma atómica (`tmp` + `rename`, con fal
 
 | Archivo | Contenido |
 |---|---|
-| `data/config.json` | Puerto, PIN, cliente OAuth estático, API keys (hashes/metadatos), workspaces autorizados, permisos, idioma UI, configuración del túnel, ruta de Operator y estado de `fullControl`. |
+| `data/config.json` | Puerto, PIN, cliente OAuth estático, API keys (hashes/metadatos), workspaces autorizados, permisos (`filterSensitiveEnv`, `envAllowlist`, `envBlocklist`), idioma UI, configuración del túnel, ruta de Operator y estado de `fullControl`. |
 | `data/auth-state.json` | Clientes DCR registrados, `access_token` / `refresh_token` activos y ventana de gracia de refresh (60 s). |
 | `data/handoffs.json` | Esquema v2: `trails` (mapa por `trailKey = "<sessionKey>::<sha1(workspace)[0..8]>"`, máx. 30) y `checkpoints` (máx. 25), con secretos redactados. |
 | `data/runtime.json` | Estado de ejecución del túnel/daemon actual escrito por `TunnelManager`. |
