@@ -7,13 +7,13 @@
   --bg-raw: light-dark(#f3f3f3, #202020);
   --card-raw: light-dark(#fbfbfb, #2b2b2b);
   --card-hover-raw: light-dark(#f6f6f6, #323232);
-  --control-raw: light-dark(rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.061));
-  --control-hover-raw: light-dark(#f9f9f9, rgba(255, 255, 255, 0.084));
+  --control-raw: light-dark(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.061));
+  --control-hover-raw: light-dark(#ffffff, rgba(255, 255, 255, 0.084));
   --subtle-hover-raw: light-dark(rgba(0, 0, 0, 0.037), rgba(255, 255, 255, 0.061));
   --subtle-active-raw: light-dark(rgba(0, 0, 0, 0.025), rgba(255, 255, 255, 0.042));
-  --stroke-card-raw: light-dark(rgba(0, 0, 0, 0.0578), rgba(0, 0, 0, 0.2));
-  --stroke-control-raw: light-dark(rgba(0, 0, 0, 0.0578), rgba(255, 255, 255, 0.093));
-  --stroke-control-bottom-raw: light-dark(rgba(0, 0, 0, 0.1622), rgba(255, 255, 255, 0.093));
+  --stroke-card-raw: light-dark(rgba(0, 0, 0, 0.075), rgba(0, 0, 0, 0.2));
+  --stroke-control-raw: light-dark(rgba(0, 0, 0, 0.085), rgba(255, 255, 255, 0.093));
+  --stroke-control-bottom-raw: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.093));
   --fg-raw: light-dark(#1b1b1b, #ffffff);
   --fg-2-raw: light-dark(#616161, rgba(255, 255, 255, 0.786));
   --fg-3-raw: light-dark(#8a8a8a, rgba(255, 255, 255, 0.544));

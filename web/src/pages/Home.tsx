@@ -197,12 +197,12 @@ export function HomePage() {
           icon="globe"
           title={t('home.mcpUrlTitle')}
           description={t('home.mcpUrlDesc')}
-          action={<CopyValue value={mcpUrl} class="max-w-[340px]" />}
+          action={<CopyValue value={mcpUrl} class="max-w-[460px]" />}
         />
         <SettingsCard
           iconSlot={<BrandIcon name="gemini" size={20} class="text-fg-2" />}
           title={t('home.geminiUrlTitle')}
-          action={<CopyValue value={geminiUrl} class="max-w-[340px]" />}
+          action={<CopyValue value={geminiUrl} class="max-w-[460px]" />}
         />
         <SettingsCard
           icon="key"

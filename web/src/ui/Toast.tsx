@@ -37,7 +37,7 @@ export function ToastHost() {
       {items.map((item) => (
         <div
           key={item.id}
-          class={`pointer-events-auto max-w-sm rounded-lg border bg-card px-4 py-2.5 text-[13px] leading-[18px] text-fg ${BORDER_MAP[item.kind]}`}
+          class={`pointer-events-auto max-w-sm rounded-lg border bg-card px-4 py-2.5 text-[13px] leading-[18px] text-fg shadow-[0_4px_12px_rgba(0,0,0,0.14)] ${BORDER_MAP[item.kind]}`}
         >
           {item.message}
         </div>

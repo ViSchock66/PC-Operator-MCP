@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'preact/hooks';
 import { t } from './i18n';
 import { deriveTunnelStatus } from './lib/status';
 import { ActivityPage } from './pages/Activity';
@@ -13,9 +14,14 @@ import { NavView, type NavItemDef } from './ui/NavView';
 import { ToastHost } from './ui/Toast';
 
 export function App() {
-  const { page } = routeSignal.value;
+  const { page, subtab } = routeSignal.value;
   const s = stateSignal.value;
   const derived = deriveTunnelStatus(s?.tunnel);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [page, subtab]);
 
   const navItems: NavItemDef[] = [
     {
@@ -41,7 +47,7 @@ export function App() {
     <div class="flex h-screen overflow-hidden bg-bg text-fg">
       <NavView activePage={page} items={navItems} footerItem={footerItem} />
 
-      <main class="min-w-0 flex-1 overflow-y-auto px-6 min-[1008px]:px-10 py-8">
+      <main ref={mainRef} class="min-w-0 flex-1 overflow-y-auto px-6 min-[1008px]:px-10 py-8">
         <div class="mx-auto max-w-[1000px]">
           {page === 'home' ? <HomePage /> : null}
           {page === 'connection' ? <ConnectionPage /> : null}
