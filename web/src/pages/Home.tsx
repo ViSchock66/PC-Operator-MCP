@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { restartTunnel, startTunnel, stopTunnel } from '../api/endpoints';
 import { languageSignal, t } from '../i18n';
 import { baseName, formatClock, formatDurationHuman, formatHms } from '../lib/format';
@@ -13,11 +13,24 @@ import { InfoBar, StatusGlyph } from '../ui/Status';
 import { pushToast } from '../ui/Toast';
 import { ToggleSwitch } from '../ui/ToggleSwitch';
 
+// Cantidad de eventos que muestra la tarjeta "Actividad reciente" (con scroll interno).
+const RECENT_LOGS_LIMIT = 10;
+
 export function HomePage() {
   const s = stateSignal.value;
   const lang = languageSignal.value;
   const now = tickSignal.value;
   const [busyTunnel, setBusyTunnel] = useState(false);
+
+  // Actividad reciente: se queda pegada a lo más nuevo mientras la persona no haya subido
+  // con el scroll (mismo criterio que la pestaña Actividad).
+  const recentBoxRef = useRef<HTMLDivElement>(null);
+  const stickToNewestRef = useRef(true);
+  const lastLog = logsSignal.value[logsSignal.value.length - 1];
+  useEffect(() => {
+    const el = recentBoxRef.current;
+    if (el && stickToNewestRef.current) el.scrollTop = el.scrollHeight;
+  }, [lastLog, Boolean(s)]);
 
   if (!s) {
     return (
@@ -113,7 +126,7 @@ export function HomePage() {
     }
   }
 
-  const recentLogs = logsSignal.value.slice(-5);
+  const recentLogs = logsSignal.value.slice(-RECENT_LOGS_LIMIT);
 
   return (
     <div>
@@ -272,7 +285,17 @@ export function HomePage() {
           </a>
         }
       >
-        <div class="rounded border border-stroke-card bg-card px-4 py-3 font-mono text-[12px] leading-5">
+        <div
+          ref={recentBoxRef}
+          role="region"
+          tabIndex={0}
+          aria-label={t('home.recentActivityTitle')}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            stickToNewestRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+          }}
+          class="max-h-[164px] overflow-y-auto rounded border border-stroke-card bg-card px-4 py-3 font-mono text-[12px] leading-5"
+        >
           {recentLogs.length === 0 ? (
             <div class="font-sans text-[13px] text-fg-3">{t('home.noRecentActivity')}</div>
           ) : (
