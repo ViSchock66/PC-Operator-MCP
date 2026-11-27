@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { APP_ROOT, BUILTIN_OAUTH_PROVIDERS } from './config.js';
-import { getServerMessages, normalizeLanguage } from './i18n.js';
+import { getServerMessages, normalizeLanguage, normalizeTheme } from './i18n.js';
 import { renderLoginHtml } from './templates/loginPage.js';
 
 const execFileAsync = promisify(execFile);
@@ -254,7 +254,8 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
         platform: process.platform
       },
       ui: {
-        language: normalizeLanguage(cfg.ui?.language)
+        language: normalizeLanguage(cfg.ui?.language),
+        theme: normalizeTheme(cfg.ui?.theme)
       },
       auth: {
         pin: cfg.pin,
@@ -368,11 +369,12 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     }
     if (req.method === 'GET' && (req.path === '/' || req.path === '')) {
       const lang = normalizeLanguage(req.query.lang || configManager.get().ui?.language);
+      const theme = normalizeTheme(req.query.theme || configManager.get().ui?.theme);
       const rawErr = req.query.error ? String(req.query.error) : '';
       const err = rawErr === 'invalid_pin'
         ? getServerMessages(lang).login.invalidPin
         : rawErr;
-      return res.status(200).type('html').send(renderLoginHtml({ lang, errorMessage: err }));
+      return res.status(200).type('html').send(renderLoginHtml({ lang, theme, errorMessage: err }));
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return res.status(401).type('text/plain').send('Sesión local requerida.');
@@ -535,7 +537,8 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     try {
       const b = req.body || {};
       const ui = configManager.updateUiConfig({
-        language: b.language !== undefined ? b.language : undefined
+        language: b.language !== undefined ? b.language : undefined,
+        theme: b.theme !== undefined ? b.theme : undefined
       });
       tunnelManager?.notifyStateChange?.();
       return res.json({ ok: true, ui, state: buildFullState() });

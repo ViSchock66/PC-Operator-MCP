@@ -11,6 +11,10 @@ export function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+export function icon(name, cls = 'icon-sm') {
+  return `<svg class="${escapeHtml(cls)}" aria-hidden="true"><use href="/admin/assets/icons.svg#i-${escapeHtml(name)}"></use></svg>`;
+}
+
 export function toast(msg, kind = 'ok') {
   const stack = $('toast-stack');
   if (!stack) return;
@@ -24,7 +28,7 @@ export function toast(msg, kind = 'ok') {
   }, 3000);
 }
 
-export async function copyText(text, label = null) {
+export async function copyText(text, label = null, triggerBtn = null) {
   if (!text || text === '--') return;
   const msg = label || t('common.copied');
   try {
@@ -40,6 +44,18 @@ export async function copyText(text, label = null) {
     document.execCommand('copy');
     ta.remove();
     toast(msg, 'ok');
+  }
+  if (triggerBtn && !triggerBtn.dataset.copyFlash) {
+    triggerBtn.dataset.copyFlash = '1';
+    triggerBtn.classList.add('is-copied');
+    const useEl = triggerBtn.querySelector('use');
+    const prevHref = useEl ? useEl.getAttribute('href') : null;
+    if (useEl) useEl.setAttribute('href', '/admin/assets/icons.svg#i-check');
+    setTimeout(() => {
+      triggerBtn.classList.remove('is-copied');
+      if (useEl && prevHref) useEl.setAttribute('href', prevHref);
+      delete triggerBtn.dataset.copyFlash;
+    }, 1200);
   }
 }
 

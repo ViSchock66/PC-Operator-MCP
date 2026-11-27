@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, normalizeLanguage } from './i18n.js';
+import { DEFAULT_LANGUAGE, DEFAULT_THEME, SUPPORTED_LANGUAGES, SUPPORTED_THEMES, normalizeLanguage, normalizeTheme } from './i18n.js';
 import { normalizeEnvVarList } from './shellEnv.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -329,7 +329,8 @@ export class ConfigManager {
         autoStart: loaded.tunnel?.autoStart ?? true
       },
       ui: {
-        language: normalizeLanguage(loaded.ui?.language || process.env.MCP_LANG, DEFAULT_LANGUAGE)
+        language: normalizeLanguage(loaded.ui?.language || process.env.MCP_LANG, DEFAULT_LANGUAGE),
+        theme: normalizeTheme(loaded.ui?.theme, DEFAULT_THEME)
       }
     };
 
@@ -614,7 +615,7 @@ export class ConfigManager {
 
   updateUiConfig(patch = {}) {
     if (!this.config.ui) {
-      this.config.ui = { language: DEFAULT_LANGUAGE };
+      this.config.ui = { language: DEFAULT_LANGUAGE, theme: DEFAULT_THEME };
     }
     if (patch.language !== undefined) {
       const raw = String(patch.language || '').trim().toLowerCase();
@@ -622,6 +623,13 @@ export class ConfigManager {
         throw new Error(`Unsupported UI language: "${patch.language}". Supported: ${SUPPORTED_LANGUAGES.join(', ')}.`);
       }
       this.config.ui.language = raw;
+    }
+    if (patch.theme !== undefined) {
+      const rawTheme = String(patch.theme || '').trim().toLowerCase();
+      if (!SUPPORTED_THEMES.includes(rawTheme)) {
+        throw new Error(`Unsupported UI theme: "${patch.theme}". Supported: ${SUPPORTED_THEMES.join(', ')}.`);
+      }
+      this.config.ui.theme = rawTheme;
     }
     this.save();
     return { ...this.config.ui };

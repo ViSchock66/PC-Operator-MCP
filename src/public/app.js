@@ -40,7 +40,105 @@ let logFilter = 'all';
 let logSearch = '';
 let allLogs = [];
 let sseStatus = 'connecting';
+let currentThemePref = 'system';
 const daemonLogCache = new Map();
+const themeMql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+
+function normalizeThemePref(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  return v === 'light' || v === 'dark' ? v : 'system';
+}
+
+function updateThemeColorMeta(pref) {
+  const isDark = pref === 'dark' || (pref === 'system' && Boolean(themeMql?.matches));
+  const metaTc = document.getElementById('meta-theme-color');
+  if (metaTc) metaTc.setAttribute('content', isDark ? '#151517' : '#efefec');
+}
+
+function applyThemeVisual(pref, { updateStorage = true } = {}) {
+  const normalized = normalizeThemePref(pref);
+  currentThemePref = normalized;
+  const csMeta = document.querySelector('meta[name="color-scheme"]');
+  if (csMeta) {
+    csMeta.setAttribute('content', normalized === 'system' ? 'light dark' : normalized);
+  }
+  if (normalized === 'system') {
+    delete document.documentElement.dataset.theme;
+  } else {
+    document.documentElement.dataset.theme = normalized;
+  }
+  if (updateStorage) {
+    try {
+      if (normalized === 'system') localStorage.removeItem('color-scheme');
+      else localStorage.setItem('color-scheme', normalized);
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+  document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+    const active = btn.dataset.themeBtn === normalized;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+  updateThemeColorMeta(normalized);
+}
+
+if (themeMql) {
+  const onSystemThemeChange = () => {
+    if (currentThemePref === 'system') updateThemeColorMeta('system');
+  };
+  if (typeof themeMql.addEventListener === 'function') {
+    themeMql.addEventListener('change', onSystemThemeChange);
+  } else if (typeof themeMql.addListener === 'function') {
+    themeMql.addListener(onSystemThemeChange);
+  }
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'color-scheme') {
+    applyThemeVisual(normalizeThemePref(e.newValue), { updateStorage: false });
+  }
+});
+
+// Native <dialog> light-dismiss fallback when closedby is unsupported
+const confirmDialogEl = $('confirm-dialog');
+if (confirmDialogEl && !('closedBy' in HTMLDialogElement.prototype)) {
+  const isOutside = (e, dlg) => {
+    const r = dlg.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  let pressedOutside = false;
+  confirmDialogEl.addEventListener('pointerdown', (e) => { pressedOutside = isOutside(e, confirmDialogEl); });
+  confirmDialogEl.addEventListener('pointerup', (e) => {
+    if (pressedOutside && isOutside(e, confirmDialogEl)) confirmDialogEl.close();
+  });
+}
+
+function askConfirm({ title, body, danger = true, confirmLabel = null }) {
+  const dlg = $('confirm-dialog');
+  if (!dlg || typeof dlg.showModal !== 'function') {
+    return Promise.resolve(window.confirm(body || title));
+  }
+  const titleEl = $('confirm-dialog-title');
+  const bodyEl = $('confirm-dialog-body');
+  const okBtn = $('confirm-dialog-ok');
+  if (titleEl) titleEl.textContent = title || '';
+  if (bodyEl) bodyEl.textContent = body || '';
+  if (okBtn) {
+    okBtn.textContent = confirmLabel || t('common.confirm');
+    okBtn.className = `btn ${danger ? 'btn-danger' : 'btn-primary'}`;
+  }
+  return new Promise((resolve) => {
+    const onClose = () => {
+      const val = dlg.returnValue;
+      dlg.returnValue = '';
+      dlg.removeEventListener('close', onClose);
+      resolve(val === 'confirm');
+    };
+    dlg.addEventListener('close', onClose);
+    dlg.showModal();
+  });
+}
 
 const TAB_META = {
   overview: { titleKey: 'nav.overview', subKey: 'nav.overviewSub' },
@@ -205,7 +303,7 @@ function applyLanguageLive(lang) {
   }
 }
 
-function renderState(s, { forceForms = false, skipLangSync = false } = {}) {
+function renderState(s, { forceForms = false, skipLangSync = false, skipThemeSync = false } = {}) {
   state = s;
 
   if (!skipLangSync && s.ui?.language) {
@@ -215,6 +313,13 @@ function renderState(s, { forceForms = false, skipLangSync = false } = {}) {
       applyTranslations(document);
       updateTopbarHeader();
       updateSseLabel();
+    }
+  }
+
+  if (!skipThemeSync && s.ui?.theme) {
+    const serverTheme = normalizeThemePref(s.ui.theme);
+    if (serverTheme !== currentThemePref) {
+      applyThemeVisual(serverTheme);
     }
   }
 
@@ -279,6 +384,17 @@ async function switchLanguage(lang) {
     const res = await api('/admin/api/config/ui', 'POST', { language: target });
     if (res.state) renderState(res.state, { skipLangSync: true });
     toast(t('langToast.switched'));
+  } catch (err) {
+    toast(err.message, 'err');
+  }
+}
+
+async function switchTheme(theme) {
+  const target = normalizeThemePref(theme);
+  applyThemeVisual(target);
+  try {
+    const res = await api('/admin/api/config/ui', 'POST', { theme: target });
+    if (res.state) renderState(res.state, { skipThemeSync: true, skipLangSync: true });
   } catch (err) {
     toast(err.message, 'err');
   }
@@ -380,15 +496,18 @@ document.querySelectorAll('[data-snippet-tab]').forEach((btn) => {
   });
 });
 
-$('btn-copy-snippet')?.addEventListener('click', () => {
+$('btn-copy-snippet')?.addEventListener('click', (e) => {
   const mcpUrl = state?.tunnel?.mcpUrl || state?.tunnel?.localMcpUrl || '--';
   const snippets = buildClientSnippets(mcpUrl);
-  copyText(snippets[activeSnippet] || '', t('connections.snippetCopied'));
+  copyText(snippets[activeSnippet] || '', t('connections.snippetCopied'), e.currentTarget);
 });
 
-// Live EN | ES switcher
+// Live EN | ES switcher & Theme switcher
 document.querySelectorAll('[data-lang-btn]').forEach((btn) => {
   btn.addEventListener('click', () => switchLanguage(btn.dataset.langBtn));
+});
+document.querySelectorAll('[data-theme-btn]').forEach((btn) => {
+  btn.addEventListener('click', () => switchTheme(btn.dataset.themeBtn));
 });
 
 const TAB_KEYS = {
@@ -431,30 +550,30 @@ document.querySelectorAll('.mode-option').forEach((card) => {
 document.querySelectorAll('[data-copy-target]').forEach((btn) => {
   btn.addEventListener('click', () => {
     const target = $(btn.dataset.copyTarget);
-    if (target) copyText(target.textContent.trim());
+    if (target) copyText(target.textContent.trim(), null, btn);
   });
 });
-$('sidebar-copy-mcp')?.addEventListener('click', () => {
-  copyText($('sidebar-mcp-url')?.textContent.trim(), t('sidebar.copyMcpToast'));
+$('sidebar-copy-mcp')?.addEventListener('click', (e) => {
+  copyText($('sidebar-mcp-url')?.textContent.trim(), t('sidebar.copyMcpToast'), e.currentTarget);
 });
-$('btn-hero-copy')?.addEventListener('click', () => {
-  copyText($('hero-url-pill')?.textContent.trim(), t('sidebar.copyMcpToast'));
+$('btn-hero-copy')?.addEventListener('click', (e) => {
+  copyText($('hero-url-pill')?.textContent.trim(), t('sidebar.copyMcpToast'), e.currentTarget);
 });
 
 $('btn-toggle-pin')?.addEventListener('click', () => {
   pinVisible = !pinVisible;
   if (state) renderState(state, { skipLangSync: true });
 });
-$('btn-copy-pin')?.addEventListener('click', () => {
-  if (state?.auth?.pin) copyText(state.auth.pin, t('overview.pinCopied'));
+$('btn-copy-pin')?.addEventListener('click', (e) => {
+  if (state?.auth?.pin) copyText(state.auth.pin, t('overview.pinCopied'), e.currentTarget);
 });
 $('btn-toggle-secret')?.addEventListener('click', () => {
   secretVisible = !secretVisible;
   if (state) renderState(state, { skipLangSync: true });
 });
-$('btn-copy-secret')?.addEventListener('click', () => {
+$('btn-copy-secret')?.addEventListener('click', (e) => {
   if (state?.auth?.staticClient?.client_secret) {
-    copyText(state.auth.staticClient.client_secret, t('overview.secretCopied'));
+    copyText(state.auth.staticClient.client_secret, t('overview.secretCopied'), e.currentTarget);
   }
 });
 document.querySelectorAll('[data-copy-oauth-bundle]').forEach((btn) => {
@@ -556,7 +675,12 @@ $('btn-regen-pin')?.addEventListener('click', async () => {
 });
 
 $('btn-regen-client')?.addEventListener('click', async () => {
-  if (!confirm(t('connections.confirmRegenClient'))) return;
+  const confirmed = await askConfirm({
+    title: t('connections.regenOauthClientTitle'),
+    body: t('connections.confirmRegenClient'),
+    danger: true
+  });
+  if (!confirmed) return;
   try {
     const res = await api('/admin/api/config/server', 'POST', { regenerateStaticClient: true });
     renderState(res.state, { forceForms: true });
@@ -901,7 +1025,12 @@ $('btn-clear-logs')?.addEventListener('click', async () => {
 });
 
 $('btn-shutdown-daemon')?.addEventListener('click', async () => {
-  if (!confirm(t('nav.shutdownConfirm'))) return;
+  const confirmed = await askConfirm({
+    title: t('nav.shutdownConfirmTitle'),
+    body: t('nav.shutdownConfirm'),
+    danger: true
+  });
+  if (!confirmed) return;
   try {
     await api('/admin/api/daemon/shutdown', 'POST', {});
     toast(t('nav.shutdownToast'));
@@ -957,6 +1086,16 @@ function connectSse() {
 }
 
 // Initial bootstrap
+try {
+  const storedTheme = localStorage.getItem('color-scheme');
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    applyThemeVisual(storedTheme, { updateStorage: false });
+  } else {
+    applyThemeVisual('system', { updateStorage: false });
+  }
+} catch {
+  applyThemeVisual('system', { updateStorage: false });
+}
 applyTranslations(document);
 updateTopbarHeader();
 updateSseLabel();

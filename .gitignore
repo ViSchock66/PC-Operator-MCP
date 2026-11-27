@@ -11,3 +11,5 @@ playground/
 
 # Binario nativo de bandeja (se recompila automáticamente desde panel/tray/TrayDaemon.cs)
 panel/tray/*.exe
+panel/tray/*.exe.bak
+panel/tray/*.old.*

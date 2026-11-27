@@ -77,6 +77,9 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   // 5. All refactored admin assets, modular views, i18n dictionaries & icons are served cleanly
   for (const asset of [
     '/admin/assets/favicon.svg',
+    '/admin/assets/icons.svg',
+    '/admin/assets/fonts/geist-sans.woff2',
+    '/admin/assets/fonts/geist-mono.woff2',
     '/admin/assets/icon-32.png',
     '/admin/assets/icon-192.png',
     '/admin/assets/manifest.webmanifest',

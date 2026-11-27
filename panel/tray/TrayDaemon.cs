@@ -48,9 +48,9 @@ namespace PcOperatorTray
 
     internal sealed class DarkColorTable : ProfessionalColorTable
     {
-        private static readonly Color Bg = Color.FromArgb(18, 21, 28);
-        private static readonly Color Border = Color.FromArgb(42, 50, 68);
-        private static readonly Color Hover = Color.FromArgb(30, 36, 48);
+        private static readonly Color Bg = Color.FromArgb(24, 24, 27);
+        private static readonly Color Border = Color.FromArgb(63, 63, 70);
+        private static readonly Color Hover = Color.FromArgb(39, 39, 42);
 
         public override Color MenuBorder { get { return Border; } }
         public override Color MenuItemBorder { get { return Border; } }
@@ -101,7 +101,7 @@ namespace PcOperatorTray
         protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
         {
             int y = e.Item.Height / 2;
-            using (Pen pen = new Pen(Color.FromArgb(35, 40, 52)))
+            using (Pen pen = new Pen(Color.FromArgb(46, 46, 50)))
             {
                 e.Graphics.DrawLine(pen, 8, y, e.Item.Width - 8, y);
             }
@@ -158,8 +158,8 @@ namespace PcOperatorTray
             _menu = new ContextMenuStrip();
             _menu.Renderer = new DarkMenuRenderer();
             _menu.ShowImageMargin = false;
-            _menu.BackColor = Color.FromArgb(18, 21, 28);
-            _menu.ForeColor = Color.FromArgb(244, 244, 245);
+            _menu.BackColor = Color.FromArgb(24, 24, 27);
+            _menu.ForeColor = Color.FromArgb(237, 237, 239);
             _menu.Font = new Font("Segoe UI", 9.5f, FontStyle.Regular);
 
             _headerItem = new ToolStripMenuItem("PC Operator MCP — Iniciando...");
@@ -427,9 +427,9 @@ namespace PcOperatorTray
         private void UpdateTrayIcon(string visualState)
         {
             int size = Math.Max(16, SystemInformation.SmallIconSize.Width);
-            Color dotColor = Color.FromArgb(34, 197, 94);
-            if (visualState == "amber") dotColor = Color.FromArgb(234, 179, 8);
-            else if (visualState == "red") dotColor = Color.FromArgb(239, 68, 68);
+            Color dotColor = Color.FromArgb(16, 185, 129);
+            if (visualState == "amber") dotColor = Color.FromArgb(217, 119, 6);
+            else if (visualState == "red") dotColor = Color.FromArgb(220, 38, 38);
 
             using (Bitmap bmp = RenderStatusBitmap(size, dotColor))
             {
@@ -455,65 +455,65 @@ namespace PcOperatorTray
                 g.Clear(Color.Transparent);
 
                 float s = size / 32.0f;
-                using (GraphicsPath bg = RoundedRect(1.5f * s, 1.5f * s, 29.0f * s, 29.0f * s, 7.5f * s))
-                using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(13, 16, 23)))
-                using (Pen borderPen = new Pen(Color.FromArgb(46, 56, 76), Math.Max(1.0f, 1.4f * s)))
+                using (GraphicsPath bg = RoundedRect(1.5f * s, 1.5f * s, 29.0f * s, 29.0f * s, 7.0f * s))
+                using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(24, 24, 27)))
+                using (Pen borderPen = new Pen(Color.FromArgb(63, 63, 70), Math.Max(1.0f, 1.3f * s)))
                 {
                     g.FillPath(bgBrush, bg);
                     g.DrawPath(borderPen, bg);
                 }
 
-                using (Pen topPen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.4f, 2.2f * s)))
+                using (Pen topPen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.4f, 1.9f * s)))
                 {
                     topPen.StartCap = LineCap.Round;
                     topPen.EndCap = LineCap.Round;
                     topPen.LineJoin = LineJoin.Round;
                     using (GraphicsPath topPath = new GraphicsPath())
                     {
-                        topPath.AddLine(8.5f * s, 13.5f * s, 8.5f * s, 8.5f * s);
-                        topPath.AddLine(8.5f * s, 8.5f * s, 23.5f * s, 8.5f * s);
-                        topPath.AddLine(23.5f * s, 8.5f * s, 23.5f * s, 13.5f * s);
+                        topPath.AddLine(9.5f * s, 13.0f * s, 9.5f * s, 8.5f * s);
+                        topPath.AddLine(9.5f * s, 8.5f * s, 22.5f * s, 8.5f * s);
+                        topPath.AddLine(22.5f * s, 8.5f * s, 22.5f * s, 13.0f * s);
                         g.DrawPath(topPen, topPath);
                     }
                 }
 
-                using (Pen botPen = new Pen(Color.FromArgb(100, 116, 139), Math.Max(1.2f, 1.8f * s)))
+                using (Pen botPen = new Pen(Color.FromArgb(161, 161, 170), Math.Max(1.2f, 1.8f * s)))
                 {
                     botPen.StartCap = LineCap.Round;
                     botPen.EndCap = LineCap.Round;
                     botPen.LineJoin = LineJoin.Round;
                     using (GraphicsPath botPath = new GraphicsPath())
                     {
-                        botPath.AddLine(8.5f * s, 18.5f * s, 8.5f * s, 23.5f * s);
-                        botPath.AddLine(8.5f * s, 23.5f * s, 23.5f * s, 23.5f * s);
-                        botPath.AddLine(23.5f * s, 23.5f * s, 23.5f * s, 18.5f * s);
+                        botPath.AddLine(9.5f * s, 19.0f * s, 9.5f * s, 23.5f * s);
+                        botPath.AddLine(9.5f * s, 23.5f * s, 22.5f * s, 23.5f * s);
+                        botPath.AddLine(22.5f * s, 23.5f * s, 22.5f * s, 19.0f * s);
                         g.DrawPath(botPen, botPath);
                     }
                 }
 
-                using (Pen midPen = new Pen(Color.FromArgb(148, 163, 184), Math.Max(1.1f, 1.7f * s)))
+                using (Pen midPen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.2f, 1.8f * s)))
                 {
-                    g.DrawLine(midPen, 10.8f * s, 16.0f * s, 21.2f * s, 16.0f * s);
+                    midPen.StartCap = LineCap.Round;
+                    midPen.EndCap = LineCap.Round;
+                    g.DrawLine(midPen, 11.8f * s, 16.0f * s, 20.2f * s, 16.0f * s);
                 }
 
-                using (SolidBrush nodeFill = new SolidBrush(Color.FromArgb(24, 28, 36)))
-                using (Pen nodePen = new Pen(Color.FromArgb(244, 244, 245), Math.Max(1.2f, 1.7f * s)))
+                using (SolidBrush nodeBrush = new SolidBrush(Color.FromArgb(244, 244, 245)))
+                using (GraphicsPath leftNode = RoundedRect(7.5f * s, 14.0f * s, 4.0f * s, 4.0f * s, 1.2f * s))
+                using (GraphicsPath rightNode = RoundedRect(20.5f * s, 14.0f * s, 4.0f * s, 4.0f * s, 1.2f * s))
                 {
-                    float r = 2.3f * s;
-                    g.FillEllipse(nodeFill, 8.5f * s - r, 16.0f * s - r, r * 2, r * 2);
-                    g.DrawEllipse(nodePen, 8.5f * s - r, 16.0f * s - r, r * 2, r * 2);
-                    g.FillEllipse(nodeFill, 23.5f * s - r, 16.0f * s - r, r * 2, r * 2);
-                    g.DrawEllipse(nodePen, 23.5f * s - r, 16.0f * s - r, r * 2, r * 2);
+                    g.FillPath(nodeBrush, leftNode);
+                    g.FillPath(nodeBrush, rightNode);
                 }
 
-                // Live status badge dot in bottom-right corner
-                float dotRadius = Math.Max(3.2f, 5.2f * s);
+                // Live status indicator dot in bottom-right corner
+                float dotRadius = Math.Max(3.2f, 5.0f * s);
                 float cx = size - dotRadius - 0.8f;
                 float cy = size - dotRadius - 0.8f;
-                using (SolidBrush ringBrush = new SolidBrush(Color.FromArgb(13, 16, 23)))
+                using (SolidBrush ringBrush = new SolidBrush(Color.FromArgb(24, 24, 27)))
                 using (SolidBrush dotBrush = new SolidBrush(statusColor))
                 {
-                    float cut = dotRadius + Math.Max(1.3f, 1.8f * s);
+                    float cut = dotRadius + Math.Max(1.3f, 1.7f * s);
                     g.FillEllipse(ringBrush, cx - cut, cy - cut, cut * 2, cut * 2);
                     g.FillEllipse(dotBrush, cx - dotRadius, cy - dotRadius, dotRadius * 2, dotRadius * 2);
                 }

@@ -1662,6 +1662,7 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
   const st1 = await (await fetch(`${baseUrl}/admin/api/state`, { headers: { Cookie: adminCookie } })).json();
   assert.equal(st1.server.version, '0.5.0');
   assert.equal(st1.ui.language, 'en');
+  assert.equal(st1.ui.theme, 'system');
 
   const badLangRes = await fetch(`${baseUrl}/admin/api/config/ui`, {
     method: 'POST',
@@ -1670,15 +1671,27 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
   });
   assert.equal(badLangRes.status, 400);
 
+  const badThemeRes = await fetch(`${baseUrl}/admin/api/config/ui`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
+    body: JSON.stringify({ theme: 'neon' })
+  });
+  assert.equal(badThemeRes.status, 400);
+
   const setEsRes = await fetch(`${baseUrl}/admin/api/config/ui`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Cookie: adminCookie },
-    body: JSON.stringify({ language: 'es' })
+    body: JSON.stringify({ language: 'es', theme: 'light' })
   });
   assert.equal(setEsRes.status, 200);
   const setEsJson = await setEsRes.json();
   assert.equal(setEsJson.ui.language, 'es');
+  assert.equal(setEsJson.ui.theme, 'light');
   assert.equal(setEsJson.state.ui.language, 'es');
+  assert.equal(setEsJson.state.ui.theme, 'light');
+
+  const loginDarkRes = await (await fetch(`${baseUrl}/admin?theme=dark`)).text();
+  assert.match(loginDarkRes, /<meta name="color-scheme" content="dark" \/>/);
 
   // Persisted language reflects in /internal/tray/status and reloaded ConfigManager
   const trayRes = await fetch(`${baseUrl}/internal/tray/status`, {
@@ -1691,6 +1704,7 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
 
   const reloaded = new ConfigManager({ dataDir: env.dataDir, defaultWorkspace: env.ws1, operatorEnabled: false });
   assert.equal(reloaded.get().ui.language, 'es');
+  assert.equal(reloaded.get().ui.theme, 'light');
 
   // 4) Bundled public skills/ are automatically discovered by use_skill
   const apiKey = configManager.createApiKey('Bundled Skills Tester');

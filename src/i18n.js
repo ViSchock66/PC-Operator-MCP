@@ -1,11 +1,19 @@
 export const SUPPORTED_LANGUAGES = ['en', 'es'];
 export const DEFAULT_LANGUAGE = 'en';
+export const SUPPORTED_THEMES = ['system', 'light', 'dark'];
+export const DEFAULT_THEME = 'system';
 
 export function normalizeLanguage(raw, fallback = DEFAULT_LANGUAGE) {
   const val = String(raw || '').trim().toLowerCase();
   if (val === 'es' || val.startsWith('es-')) return 'es';
   if (val === 'en' || val.startsWith('en-')) return 'en';
   return SUPPORTED_LANGUAGES.includes(fallback) ? fallback : DEFAULT_LANGUAGE;
+}
+
+export function normalizeTheme(raw, fallback = DEFAULT_THEME) {
+  const val = String(raw || '').trim().toLowerCase();
+  if (val === 'light' || val === 'dark' || val === 'system') return val;
+  return SUPPORTED_THEMES.includes(fallback) ? fallback : DEFAULT_THEME;
 }
 
 const MESSAGES = {
@@ -19,7 +27,11 @@ const MESSAGES = {
       pinLabelHtml: 'Local PIN (stored in <code>data/config.json</code>)',
       pinPlaceholder: 'e.g. 9B2A781B',
       submit: 'Open Control Panel',
-      invalidPin: 'Invalid PIN. Check data/config.json or your terminal output.'
+      invalidPin: 'Invalid PIN. Check data/config.json or your terminal output.',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      themeSystem: 'Auto',
+      themeToggleTitle: 'Switch color theme'
     },
     consent: {
       htmlLang: 'en',
@@ -34,6 +46,10 @@ const MESSAGES = {
       pinPlaceholder: 'Authorization PIN',
       deny: 'Cancel',
       allow: 'Authorize',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      themeSystem: 'Auto',
+      themeToggleTitle: 'Switch color theme',
       invalidPin: 'Invalid PIN. Check your PIN in the /admin panel or console.',
       expired: 'Authorization request expired or invalid. Please retry from your MCP client.',
       deniedByUser: 'Authorization cancelled by user.',
@@ -59,7 +75,11 @@ const MESSAGES = {
       pinLabelHtml: 'PIN local (guardado en <code>data/config.json</code>)',
       pinPlaceholder: 'Ej: 9B2A781B',
       submit: 'Entrar al Panel',
-      invalidPin: 'PIN incorrecto. Revisa data/config.json o la salida de consola.'
+      invalidPin: 'PIN incorrecto. Revisa data/config.json o la salida de consola.',
+      themeLight: 'Claro',
+      themeDark: 'Oscuro',
+      themeSystem: 'Auto',
+      themeToggleTitle: 'Cambiar tema de color'
     },
     consent: {
       htmlLang: 'es',
@@ -74,6 +94,10 @@ const MESSAGES = {
       pinPlaceholder: 'PIN de autorización',
       deny: 'Cancelar',
       allow: 'Autorizar',
+      themeLight: 'Claro',
+      themeDark: 'Oscuro',
+      themeSystem: 'Auto',
+      themeToggleTitle: 'Cambiar tema de color',
       invalidPin: 'PIN incorrecto. Revisa el PIN en tu panel /admin o en la consola.',
       expired: 'Solicitud de autorización expirada o inválida. Vuelve a intentarlo desde tu cliente MCP.',
       deniedByUser: 'Autorización cancelada por el usuario.',

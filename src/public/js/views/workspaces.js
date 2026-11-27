@@ -1,5 +1,5 @@
 import { t } from '../../i18n/index.js';
-import { $, escapeHtml } from '../api.js';
+import { $, escapeHtml, icon } from '../api.js';
 
 export function renderWorkspacesList(s, wsFilterText = '') {
   const allowed = s.workspaces?.allowed || [];
@@ -35,7 +35,7 @@ export function renderWorkspacesList(s, wsFilterText = '') {
 
   wsList.innerHTML = filtered.map((d) => {
     const gitBadge = d.isGit
-      ? `<span class="badge badge-blue">git:${escapeHtml(d.gitBranch || 'repo')}</span>`
+      ? `<span class="badge badge-blue">${icon('git-branch', 'icon-xs')} ${escapeHtml(d.gitBranch || 'repo')}</span>`
       : '';
     const missingBadge = !d.exists
       ? `<span class="badge badge-danger">${escapeHtml(t('workspaces.missingBadge'))}</span>`
@@ -48,7 +48,7 @@ export function renderWorkspacesList(s, wsFilterText = '') {
       <div class="list-row ${d.isActive ? 'is-active' : ''}">
         <div class="list-row-main">
           <div class="row-head">
-            <span class="row-title">${escapeHtml(d.name)}</span>
+            <span class="row-title">${icon('folder', 'icon-sm')} ${escapeHtml(d.name)}</span>
             ${d.isActive ? `<span class="badge badge-ok">${escapeHtml(t('workspaces.globalActive'))}</span>` : ''}
             ${gitBadge}
             ${missingBadge}

@@ -1,5 +1,5 @@
 import { t } from '../../i18n/index.js';
-import { $, escapeHtml } from '../api.js';
+import { $, escapeHtml, icon } from '../api.js';
 
 export function buildClientSnippets(mcpUrl) {
   const url = mcpUrl && mcpUrl !== '--' ? mcpUrl : 'http://127.0.0.1:3333/mcp';
@@ -99,7 +99,7 @@ export function renderAuthSection(s) {
   const builtinList = $('builtin-providers-list');
   if (builtinList) {
     builtinList.innerHTML = (s.auth?.builtinProviders || []).map((p) => `
-      <span class="badge badge-ok" title="${escapeHtml(p.origin)}">${escapeHtml(p.name)}</span>
+      <span class="badge" title="${escapeHtml(p.origin)}"><span class="status-dot" style="background:var(--ok-dot)"></span>${escapeHtml(p.name)}</span>
     `).join('');
   }
 
@@ -187,7 +187,10 @@ export function renderSetupGuide(s, opInfo, activeSnippet = 'claude-code') {
           <div class="row-title">${escapeHtml(c.label)}</div>
           <div class="row-sub mono">${escapeHtml(c.detail)}</div>
         </div>
-        <span class="check-status ${c.ok ? 'check-ok' : 'check-pending'}">${c.ok ? `[${escapeHtml(t('common.ready'))}]` : `[${escapeHtml(t('common.pending'))}]`}</span>
+        <span class="check-status ${c.ok ? 'check-ok' : 'check-pending'}">
+          ${icon(c.ok ? 'circle-check' : 'clock', 'icon-xs')}
+          <span>${escapeHtml(c.ok ? t('common.ready') : t('common.pending'))}</span>
+        </span>
       </div>
     `).join('');
   }
