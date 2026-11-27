@@ -5,7 +5,7 @@ Add-Type -AssemblyName System.Drawing
 $assetsDir = $PSScriptRoot
 $panelDir = Split-Path -Parent $assetsDir
 $rootDir = Split-Path -Parent $panelDir
-$publicDir = Join-Path $rootDir "src\public"
+$publicDir = Join-Path $rootDir "web\public"
 
 function Add-RoundedRectPath {
   param(

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <script>
+    (function () {
+      var stored = null;
+      try { stored = localStorage.getItem('color-scheme'); } catch (e) {}
+      var content = (stored === 'light' || stored === 'dark') ? stored : 'light dark';
+      var csMeta = document.querySelector('meta[name="color-scheme"]');
+      if (csMeta) csMeta.setAttribute('content', content);
+      if (stored === 'light' || stored === 'dark') {
+        document.documentElement.dataset.theme = stored;
+      }
+      var isDark = stored === 'dark' || (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      var tc = document.createElement('meta');
+      tc.name = 'theme-color';
+      tc.id = 'meta-theme-color';
+      tc.content = isDark ? '#202020' : '#f3f3f3';
+      document.head.appendChild(tc);
+    })();
+  </script>
+  <title>PC-Operator-MCP — Panel de control</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/admin/assets/icon-192.png" />
+  <link rel="manifest" href="/admin/assets/manifest.webmanifest" />
+</head>
+<body>
+  <div id="app"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

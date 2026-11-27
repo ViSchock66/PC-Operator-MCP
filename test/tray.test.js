@@ -74,30 +74,26 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   await new Promise((r) => setTimeout(r, 200));
   assert.equal(shutdownCalled, true);
 
-  // 5. All refactored admin assets, modular views, i18n dictionaries & icons are served cleanly
+  // 5. Static assets and built Vite Preact bundle refs in src/public/index.html are served cleanly
   for (const asset of [
     '/admin/assets/favicon.svg',
-    '/admin/assets/icons.svg',
-    '/admin/assets/fonts/geist-sans.woff2',
-    '/admin/assets/fonts/geist-mono.woff2',
     '/admin/assets/icon-32.png',
     '/admin/assets/icon-192.png',
-    '/admin/assets/manifest.webmanifest',
-    '/admin/assets/styles.css',
-    '/admin/assets/app.js',
-    '/admin/assets/i18n/index.js',
-    '/admin/assets/i18n/en.js',
-    '/admin/assets/i18n/es.js',
-    '/admin/assets/js/api.js',
-    '/admin/assets/js/render.js',
-    '/admin/assets/js/views/overview.js',
-    '/admin/assets/js/views/workspaces.js',
-    '/admin/assets/js/views/connections.js',
-    '/admin/assets/js/views/runtime.js',
-    '/admin/assets/js/views/handoff.js'
+    '/admin/assets/manifest.webmanifest'
   ]) {
     const assetRes = await fetch(`${baseUrl}${asset}`);
     assert.equal(assetRes.status, 200, `Expected 200 for ${asset}`);
+  }
+
+  const builtIndexPath = new URL('../src/public/index.html', import.meta.url);
+  assert.ok(fs.existsSync(builtIndexPath), 'src/public/index.html must exist (run npm run build:web)');
+  const builtIndexHtml = fs.readFileSync(builtIndexPath, 'utf8');
+  const assetRefs = [...new Set([...builtIndexHtml.matchAll(/\/admin\/assets\/[^"']+/g)].map((m) => m[0]))];
+  assert.ok(assetRefs.some((r) => r.endsWith('.js')), 'Built index.html must reference at least one JS asset');
+  assert.ok(assetRefs.some((r) => r.endsWith('.css')), 'Built index.html must reference at least one CSS asset');
+  for (const ref of assetRefs) {
+    const assetRes = await fetch(`${baseUrl}${ref}`);
+    assert.equal(assetRes.status, 200, `Expected 200 for ${ref}`);
   }
 
   // 5b. Auditoría 2 (4.6): /admin/assets/index.html blocked, missing assets & unknown /admin paths return 404/401 instead of 200 login HTML

@@ -323,7 +323,16 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
     }
     return next();
   });
-  router.use('/assets', express.static(PUBLIC_DIR, { maxAge: 0, index: false }));
+  router.use('/assets', express.static(PUBLIC_DIR, {
+    maxAge: 0,
+    index: false,
+    setHeaders: (res, filePath) => {
+      const normalized = filePath.replace(/\\/g, '/');
+      if (normalized.includes('/static/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    }
+  }));
   router.use('/assets', (_req, res) => res.status(404).type('text/plain').send('Asset no encontrado.'));
 
   router.use(express.urlencoded({ extended: false }));

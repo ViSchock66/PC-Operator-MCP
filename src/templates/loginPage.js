@@ -9,6 +9,10 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 3a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 10 3m0 11.5a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0v-1a.5.5 0 0 1 .5-.5M3 10a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1A.5.5 0 0 1 3 10m11.5 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 0 1h-1a.5.5 0 0 1-.5-.5m-9.15-4.65a.5.5 0 0 1 .7 0l.71.7a.5.5 0 1 1-.7.71l-.71-.7a.5.5 0 0 1 0-.71m8.59 8.59a.5.5 0 0 1 .71 0l.7.7a.5.5 0 0 1-.7.71l-.71-.7a.5.5 0 0 1 0-.71m.71-8.59a.5.5 0 0 1 0 .71l-.71.7a.5.5 0 1 1-.7-.7l.7-.71a.5.5 0 0 1 .71 0m-8.6 8.59a.5.5 0 0 1 0 .7l-.7.71a.5.5 0 0 1-.71-.7l.7-.71a.5.5 0 0 1 .71 0M10 6.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7m-2.5 3.5a2.5 2.5 0 1 1 5 0 2.5 2.5 0 0 1-5 0"/></svg>';
+const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M16.38 13.06a.5.5 0 0 0-.59-.18 6 6 0 0 1-7.67-7.67.5.5 0 0 0-.64-.64 7.5 7.5 0 1 0 9.08 9.08.5.5 0 0 0-.18-.59M10 16.5a6.5 6.5 0 0 1-3.17-12.17A7 7 0 0 0 15.67 13.17 6.5 6.5 0 0 1 10 16.5"/></svg>';
+const ICON_MONITOR = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M4.5 4A2.5 2.5 0 0 0 2 6.5v6A2.5 2.5 0 0 0 4.5 15h5v1.5h-2a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-2V15h5a2.5 2.5 0 0 0 2.5-2.5v-6A2.5 2.5 0 0 0 15.5 4zM3 6.5A1.5 1.5 0 0 1 4.5 5h11A1.5 1.5 0 0 1 17 6.5v6a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 12.5z"/></svg>';
+
 export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = '' } = {}) {
   const activeLang = normalizeLanguage(lang);
   const activeTheme = normalizeTheme(theme);
@@ -37,7 +41,7 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
       var tc = document.createElement('meta');
       tc.name = 'theme-color';
       tc.id = 'meta-theme-color';
-      tc.content = isDark ? '#151517' : '#efefec';
+      tc.content = isDark ? '#202020' : '#f3f3f3';
       document.head.appendChild(tc);
     })();
   </script>
@@ -45,65 +49,216 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
   <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/admin/assets/icon-32.png" />
   <link rel="manifest" href="/admin/assets/manifest.webmanifest" />
-  <link rel="preload" href="/admin/assets/fonts/geist-sans.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="/admin/assets/fonts/geist-mono.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/admin/assets/styles.css" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f3f3f3, #202020);
+      --card: light-dark(#fbfbfb, #2b2b2b);
+      --control: light-dark(rgba(255,255,255,0.7), rgba(255,255,255,0.061));
+      --control-hover: light-dark(#f9f9f9, rgba(255,255,255,0.084));
+      --stroke-card: light-dark(rgba(0,0,0,0.0578), rgba(0,0,0,0.2));
+      --stroke-control: light-dark(rgba(0,0,0,0.0578), rgba(255,255,255,0.093));
+      --fg: light-dark(#1b1b1b, #ffffff);
+      --fg-2: light-dark(#616161, rgba(255,255,255,0.786));
+      --fg-3: light-dark(#8a8a8a, rgba(255,255,255,0.544));
+      --accent: light-dark(#005fb8, #60cdff);
+      --accent-hover: light-dark(#196ebf, #52bfe8);
+      --on-accent: light-dark(#ffffff, #000000);
+      --err-bg: light-dark(#fde7e9, #442726);
+      --err-fg: light-dark(#c42b1c, #ff99a4);
+    }
+    :root[data-theme="light"] { color-scheme: light; }
+    :root[data-theme="dark"] { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    :where(a, button, input):focus-visible {
+      outline: 2px solid var(--fg);
+      outline-offset: 1px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border: 1px solid var(--stroke-card);
+      border-radius: 8px;
+      padding: 24px;
+    }
+    .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .brand img {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .brand-title {
+      font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      font-size: 18px;
+      line-height: 24px;
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .controls {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .icon-btn {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      border: 1px solid var(--stroke-control);
+      background: var(--control);
+      color: var(--fg-2);
+      cursor: pointer;
+    }
+    .icon-btn:hover { background: var(--control-hover); color: var(--fg); }
+    .lang-group {
+      display: inline-flex;
+      border-radius: 4px;
+      border: 1px solid var(--stroke-control);
+      background: var(--control);
+      overflow: hidden;
+    }
+    .lang-group a {
+      padding: 5px 9px;
+      font-size: 12px;
+      line-height: 20px;
+      text-decoration: none;
+      color: var(--fg-2);
+    }
+    .lang-group a:hover { color: var(--fg); background: var(--control-hover); }
+    .lang-group a.active { color: var(--fg); font-weight: 600; background: var(--bg); }
+    .desc {
+      margin: 0 0 16px;
+      color: var(--fg-2);
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .err {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--stroke-card);
+      background: var(--err-bg);
+      color: var(--err-fg);
+      font-size: 13px;
+      line-height: 18px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--fg-2);
+    }
+    code {
+      font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 12px;
+      color: var(--fg);
+    }
+    input[type="password"] {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 4px;
+      border: 1px solid var(--stroke-control);
+      border-bottom: 1px solid var(--fg-3);
+      background: var(--control);
+      color: var(--fg);
+      font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    input[type="password"]:focus {
+      outline: none;
+      background: var(--card);
+      border-bottom: 2px solid var(--accent);
+    }
+    .submit-btn {
+      width: 100%;
+      height: 32px;
+      border-radius: 4px;
+      border: 0;
+      background: var(--accent);
+      color: var(--on-accent);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .submit-btn:hover { background: var(--accent-hover); }
+  </style>
 </head>
-<body class="login-body">
-  <div class="login-card">
-    <div class="login-top-row">
-      <div class="brand" style="padding:0">
-        <div class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 32 32" fill="none">
-            <rect x="1.5" y="1.5" width="29" height="29" rx="7" fill="#18181b" stroke="#3f3f46" stroke-width="1.3"/>
-            <path d="M9.5 13V9.8C9.5 9.1 10.1 8.5 10.8 8.5H21.2C21.9 8.5 22.5 9.1 22.5 9.8V13" stroke="#f4f4f5" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M9.5 19V22.2C9.5 22.9 10.1 23.5 10.8 23.5H21.2C21.9 23.5 22.5 22.9 22.5 22.2V19" stroke="#a1a1aa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="11.8" y1="16" x2="20.2" y2="16" stroke="#f4f4f5" stroke-width="1.8" stroke-linecap="round"/>
-            <rect x="7.5" y="14" width="4" height="4" rx="1.2" fill="#f4f4f5"/>
-            <rect x="20.5" y="14" width="4" height="4" rx="1.2" fill="#f4f4f5"/>
-          </svg>
-        </div>
-        <div class="brand-meta">
-          <div class="brand-title-row">
-            <span class="brand-name">PC-Operator-MCP</span>
-            <span class="version-chip">${escapeHtml(msg.badge)}</span>
-          </div>
-          <span class="brand-sub">${escapeHtml(msg.subtitle)}</span>
-        </div>
+<body>
+  <main class="card">
+    <div class="top">
+      <div class="brand">
+        <img src="/admin/assets/favicon.svg" alt="" width="24" height="24" />
+        <span class="brand-title">PC-Operator-MCP</span>
       </div>
-      <div class="login-controls">
-        <button type="button" id="login-theme-btn" class="seg-btn" title="${escapeHtml(msg.themeToggleTitle)}" aria-label="${escapeHtml(msg.themeToggleTitle)}" style="border:1px solid var(--border-hairline);background:var(--bg-subtle);padding:3px 7px">
-          <svg class="icon-xs" aria-hidden="true"><use id="login-theme-icon" href="/admin/assets/icons.svg#i-monitor"></use></svg>
+      <div class="controls">
+        <button type="button" id="login-theme-btn" class="icon-btn" title="${escapeHtml(msg.themeToggleTitle)}" aria-label="${escapeHtml(msg.themeToggleTitle)}">
+          <span id="login-theme-icon">${ICON_MONITOR}</span>
         </button>
-        <div class="segmented-mini" role="navigation" aria-label="Language">
-          <a href="/admin?lang=en" class="seg-btn ${enActive ? 'active' : ''}">EN</a>
-          <a href="/admin?lang=es" class="seg-btn ${esActive ? 'active' : ''}">ES</a>
-        </div>
+        <nav class="lang-group" aria-label="Language">
+          <a href="/admin?lang=en" class="${enActive ? 'active' : ''}">EN</a>
+          <a href="/admin?lang=es" class="${esActive ? 'active' : ''}">ES</a>
+        </nav>
       </div>
     </div>
-    <p class="muted-copy">${escapeHtml(msg.description)}</p>
-    ${errorMessage ? `<div class="alert alert-danger" style="margin-top:12px">${escapeHtml(errorMessage)}</div>` : ''}
-    <form method="POST" action="/admin/login" class="login-form">
+    <p class="desc">${escapeHtml(msg.description)}</p>
+    ${errorMessage ? `<div class="err" role="alert">${escapeHtml(errorMessage)}</div>` : ''}
+    <form method="POST" action="/admin/login">
       <input type="hidden" name="lang" value="${escapeHtml(activeLang)}" />
-      <label class="field-label" for="pin-input">${msg.pinLabelHtml}</label>
-      <input id="pin-input" class="input mono" type="password" name="pin" placeholder="${escapeHtml(msg.pinPlaceholder)}" autofocus required />
-      <button class="btn btn-primary btn-full" type="submit">${escapeHtml(msg.submit)}</button>
+      <label for="pin-input">${msg.pinLabelHtml}</label>
+      <input id="pin-input" type="password" name="pin" placeholder="${escapeHtml(msg.pinPlaceholder)}" autofocus required />
+      <button class="submit-btn" type="submit">${escapeHtml(msg.submit)}</button>
     </form>
-  </div>
+  </main>
   <script>
     (function () {
       var btn = document.getElementById('login-theme-btn');
-      var useEl = document.getElementById('login-theme-icon');
+      var iconWrap = document.getElementById('login-theme-icon');
       var mql = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      var icons = {
+        light: ${JSON.stringify(ICON_SUN)},
+        dark: ${JSON.stringify(ICON_MOON)},
+        system: ${JSON.stringify(ICON_MONITOR)}
+      };
       function getCurrent() {
         var meta = document.querySelector('meta[name="color-scheme"]');
         var c = meta ? meta.getAttribute('content') : 'light dark';
         return (c === 'light' || c === 'dark') ? c : 'system';
       }
       function syncIcon(pref) {
-        if (!useEl) return;
-        var icon = pref === 'light' ? 'sun' : (pref === 'dark' ? 'moon' : 'monitor');
-        useEl.setAttribute('href', '/admin/assets/icons.svg#i-' + icon);
+        if (iconWrap) iconWrap.innerHTML = icons[pref] || icons.system;
       }
       syncIcon(getCurrent());
       if (btn) {
@@ -124,7 +279,7 @@ export function renderLoginHtml({ lang = 'en', theme = 'system', errorMessage = 
             document.documentElement.dataset.theme = target;
             syncIcon(target);
           }
-          if (tcMeta) tcMeta.setAttribute('content', target === 'dark' ? '#151517' : '#efefec');
+          if (tcMeta) tcMeta.setAttribute('content', target === 'dark' ? '#202020' : '#f3f3f3');
         });
       }
     })();

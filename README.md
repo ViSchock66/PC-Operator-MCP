@@ -103,16 +103,7 @@ claude mcp add --transport http pc-operator "http://127.0.0.1:3333/mcp"
 
 ## Local Control Panel (`/admin`)
 
-Accessible **exclusively from `127.0.0.1`** with PIN login (rejects tunneled/proxied requests with `403`). Features live **EN / ES language switching** and **5 modular views** (keyboard shortcuts `1`–`5`):
-
-1. **Overview (`1`):** Live hero status, KPIs (tunnel, LLM sessions, Operator bridge, daemons), Quick Connect URLs/PIN/static OAuth disclosure, network health, and filterable live SSE console.
-2. **Workspaces (`2`):** Authorized folder whitelist, Windows folder picker, **Sync Sessions** across parallel models, and live permissions (`allowWrite`, `allowDelete`, `allowCommands`, `protectSensitiveFiles`, `commandTimeoutMs`, `maxReadBytes`).
-3. **Connections (`3`):** Organized into 3 sub-tabs:
-   - **Tunnel & Domain:** Tailscale Funnel (recommended), Cloudflare Named Tunnel, Cloudflare Quick Tunnel, or Local Only + binary auto-detection.
-   - **Auth & API Keys:** `gp_key_*` API key manager, OAuth 2.1 providers & custom origins, local port, PIN, and session revocation.
-   - **Setup Guide:** Live readiness checklist and copy-ready snippets for Claude Code, Cursor, VS Code Copilot, HTTP/curl, and web OAuth connectors.
-4. **Runtime (`4`):** Antigravity Operator federation toggle & per-session bridge monitor, **Full Control Mode** switch with TTL auto-expiry, and persistent console/daemon manager.
-5. **Handoff (`5`):** Auto-tracked recent trails per `(client, workspace)`, expandable command/action history, optional quick note when freezing checkpoints, and 1-click handoff prompt copy.
+Accessible **exclusively from `127.0.0.1`** with PIN login (rejects tunneled/proxied requests with `403`). Built with **Vite + Preact + TypeScript** (`web/`, bundled into `src/public/` via `npm run build:web`), styled with Windows 11 Fluent tokens, and live **ES / EN** switching across 7 sections (**Home**, **Connection**, **Workspaces**, **Processes**, **Handoff**, **Activity**, **Settings**).
 
 ---
 
