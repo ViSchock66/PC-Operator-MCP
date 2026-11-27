@@ -581,6 +581,24 @@ namespace PcOperatorTray
 
         private void OpenOrFocusPanel()
         {
+            // Instancia única del host nativo WebView2: señala activación inmediata si ya está abierto.
+            try
+            {
+                EventWaitHandle activateEvt;
+                if (EventWaitHandle.TryOpenExisting("Local\\PcOperatorMcpPanelActivate_" + _port, out activateEvt))
+                {
+                    using (activateEvt)
+                    {
+                        activateEvt.Set();
+                    }
+                    return;
+                }
+            }
+            catch
+            {
+                // Continuar con búsqueda por título o lanzamiento nuevo.
+            }
+
             IntPtr found = FindPanelWindow();
             if (found != IntPtr.Zero)
             {
@@ -600,7 +618,29 @@ namespace PcOperatorTray
                 ? string.Format("http://{0}:{1}/admin", _host, _port)
                 : _current.AdminUrl;
 
-            // Prioriza Chrome (--app= aplica <meta name="theme-color"> a la barra de título); fallback a Edge.
+            // Prioriza host nativo WebView2 (Mica + barra de título integrada) cuando está compilado/disponible.
+            try
+            {
+                string trayDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                string panelDir = Directory.GetParent(trayDir) != null ? Directory.GetParent(trayDir).FullName : "";
+                string nativeHostExe = Path.Combine(panelDir, @"host\dist\pc-operator-panel.exe");
+                if (!string.IsNullOrEmpty(panelDir) && File.Exists(nativeHostExe))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = nativeHostExe,
+                        Arguments = string.Format("--host {0} --port {1} --url {2}", _host, _port, adminUrl),
+                        UseShellExecute = false
+                    });
+                    return;
+                }
+            }
+            catch
+            {
+                // Si el host nativo falla al arrancar, caer limpiamente al navegador fallback.
+            }
+
+            // Fallback portátil: prioriza Chrome (--app= aplica <meta name="theme-color"> a la barra de título); fallback a Edge.
             string localChrome = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 @"Google\Chrome\Application\chrome.exe");

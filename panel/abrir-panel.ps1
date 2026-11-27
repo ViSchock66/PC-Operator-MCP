@@ -1,4 +1,7 @@
-param([switch]$NoBrowser)
+﻿param(
+  [switch]$NoBrowser,
+  [switch]$ForceBrowser
+)
 
 $rootDir = Split-Path -Parent $PSScriptRoot
 $configFile = Join-Path $rootDir "data\config.json"
@@ -32,7 +35,15 @@ if (-not (Test-LocalPort $port)) {
 }
 
 if (-not $NoBrowser) {
-  # Prioriza Chrome (--app= respeta <meta name="theme-color"> en la barra de título); fallback a Edge.
+  $url = "http://127.0.0.1:$port/admin"
+  $nativeExe = Join-Path $PSScriptRoot "host\dist\pc-operator-panel.exe"
+
+  if (-not $ForceBrowser -and (Test-Path $nativeExe)) {
+    Start-Process -FilePath $nativeExe -ArgumentList @("--host", "127.0.0.1", "--port", "$port", "--url", $url)
+    return
+  }
+
+  # Fallback web portátil (sin .NET 8 SDK o si se solicita navegador): Chrome --app= -> Edge --app= -> navegador por defecto.
   $candidates = @(
     "C:\Program Files\Google\Chrome\Application\chrome.exe",
     "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
@@ -40,7 +51,6 @@ if (-not $NoBrowser) {
     "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
     "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
   )
-  $url = "http://127.0.0.1:$port/admin"
   $browser = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
   if ($browser) { Start-Process $browser -ArgumentList "--app=$url" }
   else { Start-Process $url }

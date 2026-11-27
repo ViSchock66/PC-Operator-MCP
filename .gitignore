@@ -13,3 +13,9 @@ playground/
 panel/tray/*.exe
 panel/tray/*.exe.bak
 panel/tray/*.old.*
+
+# Host nativo WebView2 (se compila con .NET 8 SDK o se descarga desde GitHub Releases; fallback automático a navegador)
+panel/host/bin/
+panel/host/obj/
+panel/host/dist/
+release-artifacts/

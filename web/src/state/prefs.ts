@@ -1,6 +1,7 @@
 import { signal } from '@preact/signals';
 import type { ThemePreference } from '../api/types';
 import { syncThemeColorMeta } from './accent';
+import { syncHostTheme } from './nativeHost';
 
 export const themeSignal = signal<ThemePreference>('system');
 
@@ -18,6 +19,7 @@ function updateThemeColorMeta(pref: ThemePreference): void {
   if (typeof document === 'undefined') return;
   const isDark = pref === 'dark' || (pref === 'system' && Boolean(themeMql?.matches));
   syncThemeColorMeta(isDark);
+  syncHostTheme(pref, isDark);
 }
 
 export function applyThemeVisual(

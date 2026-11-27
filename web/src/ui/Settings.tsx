@@ -53,7 +53,7 @@ export function SettingsCard({
 }: SettingsCardProps) {
   const isInteractive = Boolean(href || onClick || clickable);
   const minHeight = description ? 'min-h-[68px]' : 'min-h-[48px]';
-  const baseClass = `flex w-full items-center justify-between gap-4 rounded border border-stroke-card bg-card px-4 py-3 text-left transition-[background-color] duration-[83ms] ease-[var(--ease-fluent)] ${minHeight} ${
+  const baseClass = `fluent-surface flex w-full items-center justify-between gap-4 rounded-md border border-stroke-card bg-card px-4 py-3 text-left transition-[background-color,border-color] duration-[83ms] ease-[var(--ease-fluent)] ${minHeight} ${
     isInteractive ? 'hover:bg-card-hover cursor-pointer' : ''
   } ${className}`;
 
@@ -120,7 +120,7 @@ export function Expander({
   const minHeight = description ? 'min-h-[68px]' : 'min-h-[48px]';
 
   return (
-    <div class="rounded border border-stroke-card bg-card overflow-hidden">
+    <div class="fluent-surface rounded-md border border-stroke-card bg-card overflow-hidden">
       <div class={`flex items-center justify-between gap-3 px-4 py-3 ${minHeight}`}>
         <button
           type="button"

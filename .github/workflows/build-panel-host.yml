@@ -1,0 +1,51 @@
+name: Build Native Panel Host (WebView2)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'panel/host/**'
+      - 'panel/assets/pc-operator.ico'
+      - '.github/workflows/build-panel-host.yml'
+  pull_request:
+    paths:
+      - 'panel/host/**'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-host:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build native WebView2 panel host
+        run: dotnet build panel/host/PcOperatorPanel.csproj -c Release
+
+      - name: Package portable host bundle
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release-artifacts | Out-Null
+          Compress-Archive -Path panel/host/dist/* -DestinationPath release-artifacts/pc-operator-panel-win-x64.zip -Force
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-operator-panel-win-x64
+          path: release-artifacts/pc-operator-panel-win-x64.zip
+
+      - name: Attach bundle to GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" release-artifacts/pc-operator-panel-win-x64.zip --clobber

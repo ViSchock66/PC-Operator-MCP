@@ -8,6 +8,7 @@
     "start": "node src/index.js",
     "tunnel": "node src/launcher.js",
     "panel": "powershell -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File panel/abrir-panel.ps1",
+    "build:panel": "node panel/build-host.mjs",
     "dev:web": "vite --config web/vite.config.ts",
     "build:web": "vite build --config web/vite.config.ts",
     "typecheck": "tsc -p web/tsconfig.json --noEmit",

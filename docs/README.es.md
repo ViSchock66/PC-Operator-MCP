@@ -24,7 +24,8 @@ Incluye **URL HTTPS fija** (Tailscale Funnel o Cloudflare Tunnel), **Panel Gráf
 
 | Comando | Descripción |
 |---|---|
-| `npm run panel` / `Abrir-Panel.bat` | Arranca el daemon oculto (si no corre) y abre `/admin` en modo app. |
+| `npm run panel` / `Abrir-Panel.bat` | Arranca el daemon oculto (si no corre) y abre `/admin` (host nativo WebView2 si está compilado, o fallback automático a navegador `--app=`). |
+| `npm run build:panel` | Opcional: compila el host nativo WebView2 para Windows 11 (`panel/host/dist/pc-operator-panel.exe`, requiere .NET 8 SDK; también se genera en GitHub Actions / Releases). |
 | `npm run tunnel` | Inicia el servidor + túnel + bandeja con salida en consola (`node src/launcher.js`). |
 | `npm start` | Inicia solo el servidor HTTP/MCP local sin túnel ni bandeja (`node src/index.js`). |
 | `.\start.ps1 [-Workspace <ruta>] [-Pick] [-Gui]` | Wrapper PowerShell hacia `src/launcher.js`. |
@@ -103,7 +104,7 @@ claude mcp add --transport http pc-operator "http://127.0.0.1:3333/mcp"
 
 ## Panel Gráfico Local (`/admin`)
 
-Accesible **solo desde `127.0.0.1`** con PIN (rechaza cualquier acceso vía proxy/túnel con `403`). Incluye cambio de idioma **EN / ES en vivo** y está organizado en **5 vistas modulares** (atajos de teclado `1`–`5`):
+Accesible **solo desde `127.0.0.1`** con PIN (rechaza cualquier acceso vía proxy/túnel con `403`). Incluye cambio de idioma **EN / ES en vivo**, **host nativo opcional WebView2 para Windows 11** (`panel/host/`, C# .NET 8 + Win32/DWM con Mica / Mica Alt / Acrylic real, barra de título integrada, tarjetas traslúcidas con bordes especulares e instancia única coordinada con la bandeja) y **fallback portátil automático al navegador** (`chrome.exe --app=` / `msedge.exe --app=`) si no se instala `.NET 8 SDK` (con empaquetado automático en GitHub Actions / Releases vía `.github/workflows/build-panel-host.yml`). Está organizado en **7 vistas**:
 
 1. **Resumen / Overview (`1`):** Tarjeta de estado, KPIs en vivo (túnel, sesiones LLM, Operator, demonios), Conexión Rápida (URLs `/mcp`, `/mcp/gemini`, PIN y OAuth estático), salud de red y consola de logs SSE con filtros.
 2. **Workspaces (`2`):** Lista de carpetas autorizadas, selector nativo de Windows, botón **Sincronizar Sesiones** y permisos en vivo (`allowWrite`, `allowDelete`, `allowCommands`, `protectSensitiveFiles`, `commandTimeoutMs`, `maxReadBytes`).

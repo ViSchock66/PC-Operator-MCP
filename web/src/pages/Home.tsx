@@ -178,30 +178,67 @@ export function HomePage() {
         ) : null}
       </div>
 
-      {/* Hero status card */}
-      <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-stroke-card bg-card p-5">
-        <div class="flex min-w-0 items-center gap-4">
-          <StatusGlyph severity={derived.severity} size={32} />
-          <div class="min-w-0">
-            <div class="font-display text-[20px] leading-7 font-semibold text-fg">
-              {t(derived.titleKey)}
+      {/* Hero status card + live telemetry strip */}
+      <div class="fluent-hero overflow-hidden rounded-xl border border-stroke-card bg-card">
+        <div class="flex flex-wrap items-center justify-between gap-4 p-5">
+          <div class="flex min-w-0 items-center gap-4">
+            <StatusGlyph severity={derived.severity} size={32} />
+            <div class="min-w-0">
+              <div class="font-display text-[20px] leading-7 font-semibold text-fg">
+                {t(derived.titleKey)}
+              </div>
+              <div class="text-[14px] leading-5 text-fg-2 truncate">{subtitle}</div>
             </div>
-            <div class="text-[14px] leading-5 text-fg-2 truncate">{subtitle}</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <ToggleSwitch
+              checked={derived.isActive}
+              disabled={busyTunnel || derived.isBusy}
+              label={t('home.tunnelSwitchLabel')}
+              onChange={handleToggleTunnel}
+            />
+            <IconButton
+              icon="arrow_clockwise"
+              label={t('home.restartTunnelLabel')}
+              disabled={busyTunnel || tun.status === 'stopped'}
+              onClick={handleRestartTunnel}
+            />
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <ToggleSwitch
-            checked={derived.isActive}
-            disabled={busyTunnel || derived.isBusy}
-            label={t('home.tunnelSwitchLabel')}
-            onChange={handleToggleTunnel}
-          />
-          <IconButton
-            icon="arrow_clockwise"
-            label={t('home.restartTunnelLabel')}
-            disabled={busyTunnel || tun.status === 'stopped'}
-            onClick={handleRestartTunnel}
-          />
+
+        <div class="grid grid-cols-2 min-[780px]:grid-cols-4 border-t border-stroke-card bg-layer/60">
+          <a
+            href="#/connection"
+            class="flex flex-col gap-0.5 px-4 py-3 no-underline hover:bg-subtle-hover transition-[background-color] duration-[83ms] border-r border-b min-[780px]:border-b-0 border-stroke-card"
+          >
+            <span class="text-[11px] leading-4 text-fg-3">{t('home.metricMode')}</span>
+            <span class="text-[13px] leading-5 font-semibold text-fg truncate">
+              {t(modeLabelKey(mode))}
+            </span>
+          </a>
+          <a
+            href="#/processes"
+            class="flex flex-col gap-0.5 px-4 py-3 no-underline hover:bg-subtle-hover transition-[background-color] duration-[83ms] min-[780px]:border-r border-b min-[780px]:border-b-0 border-stroke-card"
+          >
+            <span class="text-[11px] leading-4 text-fg-3">{t('home.clientsTitle')}</span>
+            <span class="text-[13px] leading-5 font-semibold text-fg truncate">{clientsText}</span>
+          </a>
+          <a
+            href="#/processes"
+            class="flex flex-col gap-0.5 px-4 py-3 no-underline hover:bg-subtle-hover transition-[background-color] duration-[83ms] border-r border-stroke-card"
+          >
+            <span class="text-[11px] leading-4 text-fg-3">{t('home.operatorTitle')}</span>
+            <span class="text-[13px] leading-5 font-semibold text-fg truncate">{opText}</span>
+          </a>
+          <a
+            href="#/workspaces"
+            class="flex flex-col gap-0.5 px-4 py-3 no-underline hover:bg-subtle-hover transition-[background-color] duration-[83ms]"
+          >
+            <span class="text-[11px] leading-4 text-fg-3">{t('home.activeWorkspaceTitle')}</span>
+            <span class="font-mono text-[12px] leading-5 font-semibold text-fg truncate">
+              {baseName(wsActive)}
+            </span>
+          </a>
         </div>
       </div>
 
@@ -294,7 +331,7 @@ export function HomePage() {
             const el = e.currentTarget;
             stickToNewestRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
           }}
-          class="max-h-[164px] overflow-y-auto rounded border border-stroke-card bg-card px-4 py-3 font-mono text-[12px] leading-5"
+          class="fluent-surface max-h-[164px] overflow-y-auto rounded-md border border-stroke-card bg-card px-4 py-3 font-mono text-[12px] leading-5"
         >
           {recentLogs.length === 0 ? (
             <div class="font-sans text-[13px] text-fg-3">{t('home.noRecentActivity')}</div>
