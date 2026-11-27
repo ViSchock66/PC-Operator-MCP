@@ -7,9 +7,14 @@ import { TrayCompanion } from './tray.js';
 
 function openPanelAppWindow(url) {
   if (process.platform !== 'win32') return;
-  const edge = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-  const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-  const browser = fs.existsSync(edge) ? edge : (fs.existsSync(chrome) ? chrome : null);
+  const candidates = [
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    process.env.LOCALAPPDATA ? `${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe` : '',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
+  ].filter(Boolean);
+  const browser = candidates.find((p) => fs.existsSync(p)) || null;
   if (browser) {
     spawn(browser, [`--app=${url}`], { detached: true, stdio: 'ignore' }).unref();
   } else {

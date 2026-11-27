@@ -106,6 +106,32 @@ function readGitBranchFast(dirPath) {
   }
 }
 
+// Paleta de acento de Windows (HKCU\...\Explorer\Accent\AccentPalette: 8 colores RGBA de 4 bytes cada uno,
+// en orden Light3, Light2, Light1, Base, Dark1, Dark2, Dark3, Extra). Solo lectura; fuera de Windows devuelve null.
+let accentCache = { at: 0, value: null };
+async function readWindowsAccent() {
+  if (process.platform !== 'win32') return null;
+  const now = Date.now();
+  if (now - accentCache.at < 3000) return accentCache.value;
+  let value = null;
+  try {
+    const { stdout } = await execFileAsync(
+      'reg',
+      ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Accent', '/v', 'AccentPalette'],
+      { windowsHide: true, timeout: 3000 }
+    );
+    const m = /AccentPalette\s+REG_BINARY\s+([0-9A-Fa-f]+)/.exec(stdout);
+    if (m && m[1].length >= 56) {
+      const rgb = (i) => `#${m[1].slice(i * 8, i * 8 + 6).toLowerCase()}`;
+      value = { light3: rgb(0), light2: rgb(1), light1: rgb(2), base: rgb(3), dark1: rgb(4), dark2: rgb(5), dark3: rgb(6) };
+    }
+  } catch {
+    value = null;
+  }
+  accentCache = { at: now, value };
+  return value;
+}
+
 /**
  * Creates a strictly localhost-only web UI and JSON/SSE API router at /admin.
  */
@@ -407,6 +433,10 @@ export function createLocalAdminRouter({ configManager, authService, tunnelManag
       await tunnelManager.inspectEnvironment().catch(() => {});
     }
     return res.json(buildFullState());
+  });
+
+  router.get('/api/system/accent', async (_req, res) => {
+    return res.json({ ok: true, palette: await readWindowsAccent() });
   });
 
   router.get('/api/events', (req, res) => {

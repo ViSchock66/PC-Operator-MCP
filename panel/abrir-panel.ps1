@@ -32,12 +32,16 @@ if (-not (Test-LocalPort $port)) {
 }
 
 if (-not $NoBrowser) {
-  $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-  $edge64 = "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
-  $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
+  # Prioriza Chrome (--app= respeta <meta name="theme-color"> en la barra de título); fallback a Edge.
+  $candidates = @(
+    "C:\Program Files\Google\Chrome\Application\chrome.exe",
+    "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    (Join-Path $env:LOCALAPPDATA "Google\Chrome\Application\chrome.exe"),
+    "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+    "C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+  )
   $url = "http://127.0.0.1:$port/admin"
-  if (Test-Path $edge) { Start-Process $edge -ArgumentList "--app=$url" }
-  elseif (Test-Path $edge64) { Start-Process $edge64 -ArgumentList "--app=$url" }
-  elseif (Test-Path $chrome) { Start-Process $chrome -ArgumentList "--app=$url" }
+  $browser = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+  if ($browser) { Start-Process $browser -ArgumentList "--app=$url" }
   else { Start-Process $url }
 }

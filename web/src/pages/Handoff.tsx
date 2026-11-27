@@ -5,6 +5,7 @@ import { copyToClipboard } from '../lib/clipboard';
 import { formatRelativeTime } from '../lib/format';
 import { applyStateUpdate, stateSignal } from '../state/store';
 import { Button, IconButton } from '../ui/Button';
+import { Icon } from '../ui/Icon';
 import { ContentDialog } from '../ui/ContentDialog';
 import { TextField } from '../ui/FormControls';
 import { PageHeader } from '../ui/NavView';
@@ -159,39 +160,42 @@ export function HandoffPage() {
                 class="rounded border border-stroke-card bg-card overflow-hidden"
               >
                 <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center gap-2.5">
-                      <span class="text-[14px] font-semibold text-fg">{tr.clientLabel}</span>
-                      <span class="text-[12px] text-fg-3">
-                        {tr.workspaceName || tr.activeWorkspace}
-                      </span>
-                      <span class="text-[12px] text-fg-3">
-                        · {t('handoff.opsTime', {
-                          count: tr.toolCalls || 0,
-                          time: formatRelativeTime(tr.updatedAt, lang),
-                        })}
-                      </span>
+                  <div class="flex min-w-0 flex-1 items-start gap-3">
+                    <Icon name="plug_connected" size={20} class="mt-0.5 shrink-0 text-fg-2" />
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2.5">
+                        <span class="text-[14px] font-semibold text-fg">{tr.clientLabel}</span>
+                        <span class="text-[12px] text-fg-3">
+                          {tr.workspaceName || tr.activeWorkspace}
+                        </span>
+                        <span class="text-[12px] text-fg-3">
+                          · {t('handoff.opsTime', {
+                            count: tr.toolCalls || 0,
+                            time: formatRelativeTime(tr.updatedAt, lang),
+                          })}
+                        </span>
+                      </div>
+                      <div class="mt-0.5 truncate font-mono text-[12px] text-fg-3">
+                        {tr.activeWorkspace}
+                      </div>
+                      {modFiles ? (
+                        <div class="mt-0.5 truncate font-mono text-[12px] text-fg-2">
+                          {t('handoff.modifiedFiles', { files: modFiles })}
+                        </div>
+                      ) : readFiles ? (
+                        <div class="mt-0.5 truncate font-mono text-[12px] text-fg-2">
+                          {t('handoff.readFiles', { files: readFiles })}
+                        </div>
+                      ) : null}
+                      {tr.lastError ? (
+                        <div class="mt-0.5 truncate text-[12px] text-critical">
+                          {t('handoff.lastError', { error: tr.lastError })}
+                        </div>
+                      ) : null}
                     </div>
-                    <div class="mt-0.5 truncate font-mono text-[12px] text-fg-3">
-                      {tr.activeWorkspace}
-                    </div>
-                    {modFiles ? (
-                      <div class="mt-0.5 truncate font-mono text-[12px] text-fg-2">
-                        {t('handoff.modifiedFiles', { files: modFiles })}
-                      </div>
-                    ) : readFiles ? (
-                      <div class="mt-0.5 truncate font-mono text-[12px] text-fg-2">
-                        {t('handoff.readFiles', { files: readFiles })}
-                      </div>
-                    ) : null}
-                    {tr.lastError ? (
-                      <div class="mt-0.5 truncate text-[12px] text-critical">
-                        {t('handoff.lastError', { error: tr.lastError })}
-                      </div>
-                    ) : null}
                   </div>
                   <div class="flex flex-wrap items-center gap-1.5">
-                    <Button variant="accent" onClick={() => handleCopyTrail(tr.trailKey)}>
+                    <Button onClick={() => handleCopyTrail(tr.trailKey)}>
                       {t('handoff.copyPromptBtn')}
                     </Button>
                     <Button onClick={() => handleFreeze(tr.trailKey)} disabled={busy}>
@@ -288,7 +292,7 @@ export function HandoffPage() {
                 description={cp.notes ? `${meta} · ${t('handoff.cpNote', { note: cp.notes })}` : meta}
                 action={
                   <div class="flex items-center gap-1.5">
-                    <Button variant="accent" onClick={() => handleCopyCp(cp.id)}>
+                    <Button onClick={() => handleCopyCp(cp.id)}>
                       {t('handoff.copyPromptBtn')}
                     </Button>
                     <IconButton

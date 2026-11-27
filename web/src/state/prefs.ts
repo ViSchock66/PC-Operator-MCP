@@ -1,5 +1,6 @@
 import { signal } from '@preact/signals';
 import type { ThemePreference } from '../api/types';
+import { syncThemeColorMeta } from './accent';
 
 export const themeSignal = signal<ThemePreference>('system');
 
@@ -16,8 +17,7 @@ export function normalizeThemePref(raw?: string | null): ThemePreference {
 function updateThemeColorMeta(pref: ThemePreference): void {
   if (typeof document === 'undefined') return;
   const isDark = pref === 'dark' || (pref === 'system' && Boolean(themeMql?.matches));
-  const metaTc = document.getElementById('meta-theme-color');
-  if (metaTc) metaTc.setAttribute('content', isDark ? '#202020' : '#f3f3f3');
+  syncThemeColorMeta(isDark);
 }
 
 export function applyThemeVisual(

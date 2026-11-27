@@ -240,7 +240,7 @@ export function WorkspacesPage() {
                       </span>
                     ) : null}
                     {ws.isActive ? (
-                      <span class="text-[12px] font-semibold text-accent shrink-0">
+                      <span class="text-[12px] font-semibold text-accent-text shrink-0">
                         {t('common.active')}
                       </span>
                     ) : null}

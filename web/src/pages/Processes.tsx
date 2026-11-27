@@ -133,7 +133,10 @@ export function ProcessesPage() {
       });
       applyStateUpdate(res.state);
       setFcEnabled(Boolean(res.state.daemons.fullControl.enabled));
-      pushToast(t(res.fullControl?.enabled ? 'processes.toastFcOn' : 'processes.toastFcOff'));
+      pushToast(
+        t(res.fullControl?.enabled ? 'processes.toastFcOn' : 'processes.toastFcOff'),
+        res.fullControl?.enabled ? 'caution' : 'success',
+      );
     } catch (err) {
       pushToast(err instanceof Error ? err.message : String(err), 'error');
     } finally {

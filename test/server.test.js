@@ -1914,3 +1914,53 @@ test('Auditoría 2 (4.5): CORS en /mcp permite orígenes autorizados y loopback,
   });
   assert.equal(s2sRes.status, 200);
 });
+
+test('Panel UI: /admin/api/system/accent exige sesión loopback y devuelve paleta válida o null', async (t) => {
+  const env = createTempEnv();
+  const configManager = new ConfigManager({
+    dataDir: env.dataDir,
+    defaultWorkspace: env.ws1,
+    port: 0,
+    operatorEnabled: false
+  });
+  const srv = await createMcpAppServer({ configManager, port: 0 });
+  const baseUrl = `http://127.0.0.1:${srv.port}`;
+
+  t.after(async () => {
+    await srv.close();
+    fs.rmSync(env.base, { recursive: true, force: true });
+  });
+
+  // Sin cookie de sesión -> 401
+  const unauthRes = await fetch(`${baseUrl}/admin/api/system/accent`);
+  assert.equal(unauthRes.status, 401);
+
+  // Iniciar sesión en /admin
+  const loginRes = await fetch(`${baseUrl}/admin/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ pin: configManager.get().pin }),
+    redirect: 'manual'
+  });
+  assert.equal(loginRes.status, 302);
+  const adminCookie = loginRes.headers.get('set-cookie').split(';')[0];
+
+  // Petición proxeada rechazada -> 403
+  const proxiedRes = await fetch(`${baseUrl}/admin/api/system/accent`, {
+    headers: { 'x-forwarded-for': '1.2.3.4', Cookie: adminCookie }
+  });
+  assert.equal(proxiedRes.status, 403);
+
+  // Petición autenticada loopback -> 200 con paleta válida o null
+  const okRes = await fetch(`${baseUrl}/admin/api/system/accent`, {
+    headers: { Cookie: adminCookie }
+  });
+  assert.equal(okRes.status, 200);
+  const data = await okRes.json();
+  assert.equal(data.ok, true);
+  if (data.palette !== null) {
+    for (const key of ['light3', 'light2', 'light1', 'base', 'dark1', 'dark2', 'dark3']) {
+      assert.match(data.palette[key], /^#[0-9a-f]{6}$/, `palette.${key} debe ser hex válido`);
+    }
+  }
+});

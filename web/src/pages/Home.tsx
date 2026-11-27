@@ -278,7 +278,7 @@ export function HomePage() {
         action={
           <a
             href="#/activity"
-            class="inline-flex items-center gap-1 text-[13px] text-accent hover:underline no-underline"
+            class="inline-flex items-center gap-1 text-[13px] text-accent-text hover:underline no-underline"
           >
             <span>{t('home.viewAll')}</span>
             <Icon name="chevron_right" size={14} />

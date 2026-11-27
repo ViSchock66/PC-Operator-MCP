@@ -600,11 +600,17 @@ namespace PcOperatorTray
                 ? string.Format("http://{0}:{1}/admin", _host, _port)
                 : _current.AdminUrl;
 
+            // Prioriza Chrome (--app= aplica <meta name="theme-color"> a la barra de título); fallback a Edge.
+            string localChrome = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                @"Google\Chrome\Application\chrome.exe");
             string[] candidates = new string[]
             {
+                @"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                @"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                localChrome,
                 @"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-                @"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-                @"C:\Program Files\Google\Chrome\Application\chrome.exe"
+                @"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
             };
 
             foreach (string exe in candidates)

@@ -122,6 +122,7 @@ test('Tray internal loopback API security, static UI assets, and tray executable
   // 6. TrayDaemon FindPanelWindow matches current PC-Operator-MCP window title & builds/exists
   const traySource = fs.readFileSync(new URL('../panel/tray/TrayDaemon.cs', import.meta.url), 'utf8');
   assert.match(traySource, /PC-Operator-MCP/);
+  assert.ok(traySource.indexOf('chrome.exe') > -1 && traySource.indexOf('chrome.exe') < traySource.indexOf('msedge.exe'), 'TrayDaemon should prefer Chrome --app= over Edge for theme-color titlebar');
   if (process.platform === 'win32') {
     const exePath = ensureTrayExecutable();
     assert.ok(exePath && fs.existsSync(exePath), 'pc-operator-tray.exe should exist');

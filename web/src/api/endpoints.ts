@@ -236,3 +236,16 @@ export const logoutAdmin = async () => {
     window.location.reload();
   }
 };
+
+export interface AccentPalette {
+  light3: string;
+  light2: string;
+  light1: string;
+  base: string;
+  dark1: string;
+  dark2: string;
+  dark3: string;
+}
+
+export const getSystemAccent = () =>
+  api<{ ok: boolean; palette: AccentPalette | null }>('/admin/api/system/accent');
