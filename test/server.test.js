@@ -6,7 +6,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { APP_ROOT, DEFAULT_OPERATOR_SERVER_PATH, DEFAULT_PLAYGROUND, ConfigManager } from '../src/config.js';
+import { APP_ROOT, APP_VERSION, DEFAULT_OPERATOR_SERVER_PATH, DEFAULT_PLAYGROUND, ConfigManager } from '../src/config.js';
 import { createWorkspaceMcpServer } from '../src/mcpTools.js';
 import { createMcpAppServer } from '../src/server.js';
 import { WorkspaceHarness } from '../src/workspace.js';
@@ -1659,8 +1659,11 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
   });
   const adminCookie = loginRes.headers.get('set-cookie').split(';')[0];
 
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8')).version;
+  assert.equal(APP_VERSION, pkgVersion);
+
   const st1 = await (await fetch(`${baseUrl}/admin/api/state`, { headers: { Cookie: adminCookie } })).json();
-  assert.equal(st1.server.version, '0.5.0');
+  assert.equal(st1.server.version, APP_VERSION);
   assert.equal(st1.ui.language, 'en');
   assert.equal(st1.ui.theme, 'system');
 
@@ -1700,7 +1703,7 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
   assert.equal(trayRes.status, 200);
   const trayJson = await trayRes.json();
   assert.equal(trayJson.language, 'es');
-  assert.equal(trayJson.version, '0.5.0');
+  assert.equal(trayJson.version, APP_VERSION);
 
   const reloaded = new ConfigManager({ dataDir: env.dataDir, defaultWorkspace: env.ws1, operatorEnabled: false });
   assert.equal(reloaded.get().ui.language, 'es');
@@ -1712,6 +1715,7 @@ test('Segment 1: UI language config (EN/ES), bilingual login & OAuth consent, an
   await client.connect(new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
     requestInit: { headers: { Authorization: `Bearer ${apiKey.token}` } }
   }));
+  assert.equal(client.getServerVersion()?.version, APP_VERSION);
   t.after(async () => client.close().catch(() => {}));
 
   const listRes = await client.callTool({ name: 'use_skill', arguments: {} });
@@ -1804,6 +1808,7 @@ test('Auditoría 2 (4.4): fallo en onToolEvent/handoff no rompe la tool y excepc
   await client.connect(new StreamableHTTPClientTransport(new URL(`${baseUrl}/mcp`), {
     requestInit: { headers: { Authorization: `Bearer ${apiKey.token}` } }
   }));
+  assert.equal(client.getServerVersion()?.version, APP_VERSION);
   t.after(async () => client.close().catch(() => {}));
 
   const writeRes = await client.callTool({

@@ -1,5 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { APP_VERSION } from './config.js';
 import { SkillCatalog } from './skills.js';
 
 function okJson(data) {
@@ -266,7 +267,7 @@ export function createWorkspaceMcpServer(harness, options = {}) {
   const server = new McpServer(
     {
       name: 'gemini-pc-workspace-mcp',
-      version: '0.3.0'
+      version: APP_VERSION
     },
     {
       instructions

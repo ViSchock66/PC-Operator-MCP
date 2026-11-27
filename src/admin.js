@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { APP_ROOT, BUILTIN_OAUTH_PROVIDERS } from './config.js';
+import { APP_ROOT, APP_VERSION, BUILTIN_OAUTH_PROVIDERS } from './config.js';
 import { getServerMessages, normalizeLanguage, normalizeTheme } from './i18n.js';
 import { renderLoginHtml } from './templates/loginPage.js';
 
@@ -14,14 +14,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const LOOPBACK_ADDRS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
-const APP_VERSION = (() => {
-  try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8'));
-    return String(pkg.version || '0.5.0');
-  } catch {
-    return '0.5.0';
-  }
-})();
 
 function hasProxyHeaders(req) {
   const suspicious = [

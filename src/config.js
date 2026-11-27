@@ -9,6 +9,14 @@ import { normalizeEnvVarList } from './shellEnv.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 export const APP_ROOT = path.resolve(__dirname, '..');
+export const APP_VERSION = (() => {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(APP_ROOT, 'package.json'), 'utf8'));
+    return String(pkg.version || '0.0.0');
+  } catch {
+    return '0.0.0';
+  }
+})();
 export const DEFAULT_DATA_DIR = path.join(APP_ROOT, 'data');
 export const DEFAULT_PLAYGROUND = path.join(APP_ROOT, 'playground');
 export const DEFAULT_OPERATOR_SERVER_PATH = path.join(

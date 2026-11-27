@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { APP_VERSION } from './config.js';
 
 const DEFAULT_CALL_TIMEOUT_MS = 45000;
 const DEFAULT_IDLE_TTL_MS = 20 * 60 * 1000; // 20 minutes
@@ -139,7 +140,7 @@ export class OperatorBridge {
         };
 
         const client = new Client(
-          { name: `gemini-pc-mcp-federator:${this.clientLabel}`, version: '0.3.0' },
+          { name: `gemini-pc-mcp-federator:${this.clientLabel}`, version: APP_VERSION },
           { capabilities: {} }
         );
 
