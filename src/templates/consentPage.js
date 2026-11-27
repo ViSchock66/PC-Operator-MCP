@@ -267,7 +267,7 @@ export function renderConsentPage({
   <main class="card">
     <div class="top-bar">
       <div class="head">
-        <img class="logo" src="/admin/assets/favicon.svg" alt="" width="24" height="24" />
+        <img class="logo" src="/admin/assets/favicon.svg?v=3" alt="" width="24" height="24" />
         <div>
           <h1>${escapeHtml(msg.heading)}</h1>
           <div class="sub">${escapeHtml(msg.subtitle)}</div>

@@ -63,11 +63,11 @@ export function NavView({
       <div>
         <div class="mb-4 flex h-9 items-center gap-2.5 px-2 min-[1008px]:px-3">
           <img
-            src="/admin/assets/favicon.svg"
+            src="/admin/assets/favicon.svg?v=3"
             alt=""
-            width={16}
-            height={16}
-            class="h-4 w-4 shrink-0"
+            width={18}
+            height={18}
+            class="h-[18px] w-[18px] shrink-0"
           />
           <span class="hidden min-[1008px]:inline text-[12px] leading-4 font-semibold text-fg-2 truncate">
             {t('app.brand')}
